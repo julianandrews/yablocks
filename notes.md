@@ -5,8 +5,6 @@
 - PulseVolume
     - https://gist.github.com/jasonwhite/1df6ee4b5039358701d2
     - https://menno.io/posts/pulseaudio_monitoring/
-- Network device
-    - use netlink, or possibly udev
 - CPU
 - Date?
 - Battery?

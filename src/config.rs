@@ -26,6 +26,7 @@ pub struct Config {
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum BlockConfig {
     Inotify(InotifyConfig),
+    Network(NetworkConfig),
 }
 
 /// Template Values:
@@ -35,4 +36,16 @@ pub enum BlockConfig {
 pub struct InotifyConfig {
     pub template: Option<String>,
     pub file: std::path::PathBuf,
+}
+
+/// Template Values:
+///   - operstate
+///   - wireless
+///   - essid
+///   - quality
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct NetworkConfig {
+    pub template: Option<String>,
+    pub device: String,
 }

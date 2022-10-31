@@ -10,7 +10,10 @@ anyhow = "1.0.66"
 clap = { version = "3.2.22", features = ["derive"] }
 futures = "0.3.25"
 handlebars = "4.3.5"
+iwlib = "0.1.0"
+netlink-packet-route = "0.13.0"
 notify = "5.0.0"
+rtnetlink = "0.11.0"
 serde = { version = "1.0.147", features = ["derive"] }
 tokio = { version = "1.21.2", features = ["full"] }
 toml = "0.5.9"

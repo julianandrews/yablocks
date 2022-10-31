@@ -4,7 +4,7 @@ mod renderer;
 
 use std::collections::BTreeMap;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{AppSettings, Parser};
 use futures::stream::select_all::select_all;
 use futures::{FutureExt, StreamExt};
@@ -19,11 +19,15 @@ async fn main() -> Result<()> {
     let config::Config {
         template,
         blocks: block_configs,
-    } = config::load_config(args.configfile)?;
-    let renderer = renderer::build(template)?;
+    } = config::load_config(args.configfile).context("Failed to load config")?;
+    let renderer = renderer::build(template).context("Failed to build template renderer")?;
     let block_streams: Vec<_> = block_configs
         .into_iter()
-        .map(|(name, config)| config.to_stream(name, renderer.clone()))
+        .map(|(name, config)| {
+            config
+                .to_stream(name.clone(), renderer.clone())
+                .context(format!("Failed to initialize block '{}'", name))
+        })
         .collect::<Result<_>>()?;
     let mut stream = select_all(block_streams.into_iter());
 
@@ -34,7 +38,12 @@ async fn main() -> Result<()> {
         while let Some((name, value)) = stream.next().now_or_never().flatten() {
             outputs.insert(name, value);
         }
-        println!("{}", renderer.lock().unwrap().render("", &outputs)?);
+        let output = renderer
+            .lock()
+            .unwrap()
+            .render("", &outputs)
+            .context("Failed to render template")?;
+        println!("{}", output);
     }
     Err(anyhow::anyhow!("Input stream ended"))
 }
