@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     let mut outputs: BTreeMap<String, String> = BTreeMap::new();
     while let Some((name, value)) = stream.next().await {
         outputs.insert(name, value);
-        std::thread::sleep(DEBOUNCE_TIME);
+        tokio::time::sleep(DEBOUNCE_TIME).await;
         while let Some((name, value)) = stream.next().now_or_never().flatten() {
             outputs.insert(name, value);
         }
