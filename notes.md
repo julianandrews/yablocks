@@ -28,3 +28,7 @@ It might be useful to add some for:
 See
 https://github.com/sunng87/handlebars-rust/blob/master/src/helpers/helper_extras.rs
 for examples and to see what's already there.
+
+# TODO
+
+- Add inputs from blocks to outputs

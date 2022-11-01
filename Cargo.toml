@@ -11,6 +11,7 @@ clap = { version = "3.2.22", features = ["derive"] }
 futures = "0.3.25"
 handlebars = "4.3.5"
 iwlib = "0.1.0"
+pulse = { package = "libpulse-binding", version = "2.26.0" }
 netlink-packet-route = "0.13.0"
 notify = "5.0.0"
 rtnetlink = "0.11.0"

@@ -27,6 +27,7 @@ pub struct Config {
 pub enum BlockConfig {
     Inotify(InotifyConfig),
     Network(NetworkConfig),
+    PulseVolume(PulseVolumeConfig),
 }
 
 /// Template Values:
@@ -48,4 +49,15 @@ pub struct InotifyConfig {
 pub struct NetworkConfig {
     pub template: Option<String>,
     pub device: String,
+}
+
+/// Template Values:
+///   - sink_name
+///   - volume
+///   - muted
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct PulseVolumeConfig {
+    pub template: Option<String>,
+    pub sink_name: String,
 }

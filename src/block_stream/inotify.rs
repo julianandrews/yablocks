@@ -66,7 +66,7 @@ impl Block {
     async fn wait_for_update(&mut self) {
         loop {
             let mut results = vec![self.rx.next().await.expect("inotify event stream ended")];
-            std::thread::sleep(DEBOUNCE_TIME);
+            tokio::time::sleep(DEBOUNCE_TIME).await;
             while let Some(result) = self.rx.next().now_or_never() {
                 results.push(result.expect("inotify event stream ended"));
             }
