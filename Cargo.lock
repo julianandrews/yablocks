@@ -1344,6 +1344,7 @@ dependencies = [
  "futures",
  "handlebars",
  "iwlib",
+ "libc",
  "libpulse-binding",
  "netlink-packet-route",
  "notify",

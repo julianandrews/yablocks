@@ -3,6 +3,7 @@ mod inotify;
 mod interval;
 mod network;
 mod pulse_volume;
+mod signal;
 
 use anyhow::Result;
 
@@ -23,6 +24,7 @@ impl BlockStreamConfig for config::BlockConfig {
             config::BlockConfig::Inotify(config) => config.to_stream(name, renderer),
             config::BlockConfig::Network(config) => config.to_stream(name, renderer),
             config::BlockConfig::PulseVolume(config) => config.to_stream(name, renderer),
+            config::BlockConfig::Signal(config) => config.to_stream(name, renderer),
         }
     }
 }

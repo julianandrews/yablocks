@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use anyhow::Result;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub fn load_config(file: Option<std::path::PathBuf>) -> Result<Config> {
     let file = match file {
@@ -30,6 +30,7 @@ pub enum BlockConfig {
     Inotify(InotifyConfig),
     Network(NetworkConfig),
     PulseVolume(PulseVolumeConfig),
+    Signal(SignalConfig),
 }
 
 /// Template Values:
@@ -90,4 +91,36 @@ pub struct NetworkConfig {
 pub struct PulseVolumeConfig {
     pub template: Option<String>,
     pub sink_name: String,
+}
+
+/// Template Values:
+///   - command
+///   - args
+///   - signal
+///   - output
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct SignalConfig {
+    pub template: Option<String>,
+    pub command: String,
+    pub args: Vec<String>,
+    pub signal: RTSigNum,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Copy)]
+#[serde(try_from = "i32")]
+pub struct RTSigNum(pub i32);
+
+impl TryFrom<i32> for RTSigNum {
+    type Error = String;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        let min = libc::SIGRTMIN();
+        let max = libc::SIGRTMAX();
+        if value < min || value > max {
+            Err(format!("Invalid signal (not between {} and {})", min, max))
+        } else {
+            Ok(RTSigNum(value))
+        }
+    }
 }
