@@ -26,6 +26,7 @@ pub struct Config {
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum BlockConfig {
     Command(CommandConfig),
+    Interval(IntervalConfig),
     Inotify(InotifyConfig),
     Network(NetworkConfig),
     PulseVolume(PulseVolumeConfig),
@@ -41,6 +42,20 @@ pub struct CommandConfig {
     pub template: Option<String>,
     pub command: String,
     pub args: Vec<String>,
+}
+
+/// Template Values:
+///   - command
+///   - args
+///   - interval
+///   - output
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct IntervalConfig {
+    pub template: Option<String>,
+    pub command: String,
+    pub args: Vec<String>,
+    pub interval: u64,
 }
 
 /// Template Values:
