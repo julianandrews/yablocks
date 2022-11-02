@@ -59,6 +59,7 @@ pub struct IntervalConfig {
 }
 
 /// Template Values:
+///   - file
 ///   - contents
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
@@ -68,6 +69,7 @@ pub struct InotifyConfig {
 }
 
 /// Template Values:
+///   - device
 ///   - operstate
 ///   - wireless
 ///   - essid

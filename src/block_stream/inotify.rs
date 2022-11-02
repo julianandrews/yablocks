@@ -10,6 +10,7 @@ static DEBOUNCE_TIME: std::time::Duration = std::time::Duration::from_millis(10)
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
+    file: String,
     contents: String,
 }
 
@@ -58,7 +59,10 @@ impl Block {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
             Err(error) => Err(error)?,
         };
-        let data = BlockData { contents };
+        let data = BlockData {
+            file: self.file.to_string_lossy().into_owned(),
+            contents,
+        };
         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
         Ok(output)
     }

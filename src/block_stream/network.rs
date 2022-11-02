@@ -30,6 +30,7 @@ struct Block {
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
+    device: String,
     operstate: String,
     wireless: bool,
     essid: String,
@@ -67,12 +68,14 @@ impl Block {
     fn build_block_data(&self, operstate: String) -> BlockData {
         match iwlib::get_wireless_info(self.device.clone()) {
             Some(info) => BlockData {
+                device: self.device.clone(),
                 operstate,
                 wireless: true,
                 essid: info.wi_essid,
                 quality: info.wi_quality,
             },
             None => BlockData {
+                device: self.device.clone(),
                 operstate,
                 wireless: false,
                 essid: "".to_string(),
