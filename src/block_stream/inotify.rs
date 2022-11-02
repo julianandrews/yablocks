@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::channel::mpsc::Receiver;
 use futures::stream;
 use futures::{FutureExt, SinkExt, StreamExt};
@@ -53,21 +53,25 @@ impl Block {
         })
     }
 
-    fn render(&self) -> Result<String> {
-        let contents = match std::fs::read_to_string(&self.file) {
+    async fn get_data(&self) -> Result<BlockData> {
+        let contents = match tokio::fs::read_to_string(&self.file).await {
             Ok(contents) => contents,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
             Err(error) => Err(error)?,
         };
-        let data = BlockData {
+        Ok(BlockData {
             file: self.file.to_string_lossy().into_owned(),
             contents,
-        };
+        })
+    }
+
+    async fn get_output(&mut self) -> Result<String> {
+        let data = self.get_data().await?;
         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
         Ok(output)
     }
 
-    async fn wait_for_update(&mut self) {
+    async fn wait_for_output(&mut self) -> Result<Option<String>> {
         loop {
             let mut results = vec![self.rx.next().await.expect("inotify event stream ended")];
             tokio::time::sleep(DEBOUNCE_TIME).await;
@@ -75,15 +79,11 @@ impl Block {
                 results.push(result.expect("inotify event stream ended"));
             }
             for result in results {
-                match result {
-                    Ok(event) => {
-                        for path in event.paths {
-                            if path == self.file {
-                                return;
-                            }
-                        }
+                let event = result?;
+                for path in event.paths {
+                    if path == self.file {
+                        return self.get_output().await.map(Some);
                     }
-                    Err(error) => eprintln!("Error watching files: {:?}", error),
                 }
             }
         }
@@ -93,19 +93,16 @@ impl Block {
 impl BlockStreamConfig for crate::config::InotifyConfig {
     fn to_stream<'a>(self, name: String, renderer: Renderer) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{contents}}".to_string());
-        let state = Block::new(name.clone(), template, self.file, renderer)?;
-        let initial_contents: String = state.render()?;
-        let first_run = stream::once(async { (name, initial_contents) });
-        let stream = stream::unfold(state, move |mut state| async {
-            state.wait_for_update().await;
-            let output = match state.render() {
-                Ok(output) => output,
-                Err(error) => {
-                    eprintln!("Error rendering template: {:?}", error);
-                    "Error".to_string()
-                }
+        let mut block = Block::new(name.clone(), template, self.file, renderer)?;
+        let initial_output = futures::executor::block_on(block.get_output())?;
+        let first_run = stream::once(async { Ok((name, initial_output)) });
+        let stream = stream::unfold(block, move |mut block| async {
+            let result = block.wait_for_output().await;
+            let tagged_result = match result {
+                Ok(output) => Ok((block.name.clone(), output?)),
+                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
             };
-            Some(((state.name.clone(), output), state))
+            Some((tagged_result, block))
         });
         Ok(Box::pin(first_run.chain(stream)))
     }

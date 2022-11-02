@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::stream;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -31,11 +31,10 @@ impl Block {
             .lock()
             .unwrap()
             .register_template_string(&name, template)?;
-        let child = tokio::process::Command::new(&command)
+        let stdout = tokio::process::Command::new(&command)
             .args(&args)
             .stdout(std::process::Stdio::piped())
-            .spawn()?;
-        let stdout = child
+            .spawn()?
             .stdout
             .ok_or_else(|| anyhow::anyhow!(format!("Failed to open stdout for {}", name)))?;
         let lines = BufReader::new(stdout).lines();
@@ -48,25 +47,27 @@ impl Block {
         })
     }
 
-    async fn get_data(&mut self) -> Option<BlockData> {
-        let output = match self.lines.next_line().await {
-            Ok(Some(output)) => output,
-            Ok(None) => return None,
-            Err(e) => {
-                eprintln!("Error reading input: {:?}", e);
-                "Error".to_string()
-            }
+    async fn get_data(&mut self) -> Result<Option<BlockData>> {
+        let output = match self.lines.next_line().await? {
+            Some(output) => output,
+            None => return Ok(None),
         };
-        Some(BlockData {
+        Ok(Some(BlockData {
             command: self.command.clone(),
             args: self.args.clone(),
             output,
-        })
+        }))
     }
 
-    fn render(&self, data: &BlockData) -> Result<String> {
-        let output = self.renderer.lock().unwrap().render(&self.name, data)?;
-        Ok(output)
+    async fn wait_for_output(&mut self) -> Result<Option<String>> {
+        let data = self.get_data().await?;
+        match data {
+            Some(data) => {
+                let result = self.renderer.lock().unwrap().render(&self.name, &data)?;
+                Ok(Some(result))
+            }
+            None => Ok(None),
+        }
     }
 }
 
@@ -75,18 +76,12 @@ impl BlockStreamConfig for crate::config::CommandConfig {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
         let block = Block::new(name, template, self.command, self.args, renderer)?;
         let stream = stream::unfold(block, move |mut block| async {
-            let data = match block.get_data().await {
-                Some(data) => data,
-                None => return None,
+            let result = block.wait_for_output().await;
+            let tagged_result = match result {
+                Ok(output) => Ok((block.name.clone(), output?)),
+                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
             };
-            let output = match block.render(&data) {
-                Ok(output) => output,
-                Err(error) => {
-                    eprintln!("Error rendering template: {:?}", error);
-                    "Error".to_string()
-                }
-            };
-            Some(((block.name.clone(), output), block))
+            Some((tagged_result, block))
         });
 
         Ok(Box::pin(stream))

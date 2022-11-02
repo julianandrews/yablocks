@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use futures::{stream, StreamExt};
 
 use super::{BlockStream, BlockStreamConfig, Renderer};
@@ -60,14 +60,16 @@ impl Block {
         })
     }
 
-    fn render(&self, data: &BlockData) -> Result<String> {
-        let output = self.renderer.lock().unwrap().render(&self.name, data)?;
+    async fn get_output(&self) -> Result<String> {
+        let data = self.get_data().await?;
+        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
         Ok(output)
     }
 
-    async fn get_output(&self) -> Result<String> {
-        let data = self.get_data().await?;
-        self.render(&data)
+    async fn wait_for_output(&self) -> Result<Option<String>> {
+        tokio::time::sleep(std::time::Duration::from_secs(self.interval)).await;
+        let output = self.get_output().await?;
+        Ok(Some(output))
     }
 }
 
@@ -83,18 +85,14 @@ impl BlockStreamConfig for crate::config::IntervalConfig {
             renderer,
         )?;
         let initial_output = futures::executor::block_on(block.get_output())?;
-        let first_run = stream::once(async { (name, initial_output) });
+        let first_run = stream::once(async { Ok((name, initial_output)) });
         let stream = stream::unfold(block, move |block| async {
-            let duration = std::time::Duration::from_secs(block.interval);
-            tokio::time::sleep(duration).await;
-            let output = match block.get_output().await {
-                Ok(output) => output,
-                Err(error) => {
-                    eprintln!("Error generating output: {:?}", error);
-                    "Error".to_string()
-                }
+            let result = block.wait_for_output().await;
+            let tagged_result = match result {
+                Ok(output) => Ok((block.name.clone(), output?)),
+                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
             };
-            Some(((block.name.clone(), output), block))
+            Some((tagged_result, block))
         });
 
         Ok(Box::pin(first_run.chain(stream)))

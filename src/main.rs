@@ -32,10 +32,24 @@ async fn main() -> Result<()> {
     let mut stream = select_all(block_streams.into_iter());
 
     let mut outputs: BTreeMap<String, String> = BTreeMap::new();
-    while let Some((name, value)) = stream.next().await {
+    while let Some(result) = stream.next().await {
+        let (name, value) = match result {
+            Ok((name, value)) => (name, value),
+            Err(error) => {
+                eprintln!("{:?}", error);
+                continue;
+            }
+        };
         outputs.insert(name, value);
         tokio::time::sleep(DEBOUNCE_TIME).await;
-        while let Some((name, value)) = stream.next().now_or_never().flatten() {
+        while let Some(result) = stream.next().now_or_never().flatten() {
+            let (name, value) = match result {
+                Ok((name, value)) => (name, value),
+                Err(error) => {
+                    eprintln!("{:?}", error);
+                    continue;
+                }
+            };
             outputs.insert(name, value);
         }
         let output = renderer

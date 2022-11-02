@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{stream, StreamExt};
 use pulse::callbacks::ListResult;
@@ -42,13 +42,13 @@ impl Block {
         Ok(Self { name, rx, renderer })
     }
 
-    fn render(&self, data: &BlockData) -> Result<String> {
+    async fn wait_for_output(&mut self) -> Result<Option<String>> {
+        let data = match self.rx.next().await {
+            Some(data) => data,
+            None => return Ok(None),
+        };
         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
-        Ok(output)
-    }
-
-    async fn next(&mut self) -> BlockData {
-        self.rx.next().await.expect("pulse volume stream ended")
+        Ok(Some(output))
     }
 }
 
@@ -60,15 +60,12 @@ impl BlockStreamConfig for crate::config::PulseVolumeConfig {
         tokio::spawn(async move { monitor_sink(self.sink_name, tx).await });
 
         let stream = stream::unfold(block, move |mut block| async {
-            let data = block.next().await;
-            let output = match block.render(&data) {
-                Ok(output) => output,
-                Err(error) => {
-                    eprintln!("Error rendering template for {}: {:?}", &block.name, error);
-                    "Error".to_string()
-                }
+            let result = block.wait_for_output().await;
+            let tagged_result = match result {
+                Ok(output) => Ok((block.name.clone(), output?)),
+                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
             };
-            Some(((block.name.clone(), output), block))
+            Some((tagged_result, block))
         });
 
         Ok(Box::pin(stream))
