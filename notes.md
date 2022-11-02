@@ -1,15 +1,6 @@
 # Blocks to add
 
-- Command(read from output)
 - Signal(runs command when specified signal received)
-- PulseVolume
-    - https://gist.github.com/jasonwhite/1df6ee4b5039358701d2
-    - https://menno.io/posts/pulseaudio_monitoring/
-- CPU
-- Date?
-- Battery?
-- backlight?
-- disk use?
 
 # Helpers notes
 

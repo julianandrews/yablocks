@@ -25,9 +25,22 @@ pub struct Config {
 #[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum BlockConfig {
+    Command(CommandConfig),
     Inotify(InotifyConfig),
     Network(NetworkConfig),
     PulseVolume(PulseVolumeConfig),
+}
+
+/// Template Values:
+///   - command
+///   - args
+///   - output
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct CommandConfig {
+    pub template: Option<String>,
+    pub command: String,
+    pub args: Vec<String>,
 }
 
 /// Template Values:
