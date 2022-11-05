@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use futures::{stream, StreamExt};
 
 use super::{BlockStream, BlockStreamConfig, Renderer};
@@ -85,14 +85,10 @@ impl BlockStreamConfig for crate::config::IntervalConfig {
             renderer,
         )?;
         let initial_output = futures::executor::block_on(block.get_output())?;
-        let first_run = stream::once(async { Ok((name, initial_output)) });
+        let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |block| async {
-            let result = block.wait_for_output().await;
-            let tagged_result = match result {
-                Ok(output) => Ok((block.name.clone(), output?)),
-                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
-            };
-            Some((tagged_result, block))
+            let result = block.wait_for_output().await.transpose()?;
+            Some(((block.name.clone(), result), block))
         });
 
         Ok(Box::pin(first_run.chain(stream)))

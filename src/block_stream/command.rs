@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use futures::stream;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -76,12 +76,8 @@ impl BlockStreamConfig for crate::config::CommandConfig {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
         let block = Block::new(name, template, self.command, self.args, renderer)?;
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await;
-            let tagged_result = match result {
-                Ok(output) => Ok((block.name.clone(), output?)),
-                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
-            };
-            Some((tagged_result, block))
+            let result = block.wait_for_output().await.transpose()?;
+            Some(((block.name.clone(), result), block))
         });
 
         Ok(Box::pin(stream))

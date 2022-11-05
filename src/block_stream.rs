@@ -10,7 +10,7 @@ use anyhow::Result;
 use crate::config;
 use crate::renderer::Renderer;
 
-type BlockStream = futures::stream::BoxStream<'static, Result<(String, String)>>;
+type BlockStream = futures::stream::BoxStream<'static, (String, Result<String>)>;
 
 pub trait BlockStreamConfig {
     fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream>;

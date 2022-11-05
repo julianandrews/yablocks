@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use anyhow::{Context as _, Result};
+use anyhow::Result;
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{stream, StreamExt};
 use pulse::callbacks::ListResult;
@@ -60,12 +60,8 @@ impl BlockStreamConfig for crate::config::PulseVolumeConfig {
         tokio::spawn(async move { monitor_sink(self.sink_name, tx).await });
 
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await;
-            let tagged_result = match result {
-                Ok(output) => Ok((block.name.clone(), output?)),
-                Err(error) => Err(error).with_context(|| format!("Error from {}", block.name)),
-            };
-            Some((tagged_result, block))
+            let result = block.wait_for_output().await.transpose()?;
+            Some(((block.name.clone(), result), block))
         });
 
         Ok(Box::pin(stream))
