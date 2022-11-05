@@ -24,7 +24,7 @@ struct BlockData {
 
 struct Block {
     name: String,
-    rx: Receiver<BlockData>,
+    rx: Receiver<Result<BlockData>>,
     renderer: Renderer,
 }
 
@@ -32,7 +32,7 @@ impl Block {
     fn new(
         name: String,
         template: String,
-        rx: Receiver<BlockData>,
+        rx: Receiver<Result<BlockData>>,
         renderer: Renderer,
     ) -> Result<Self> {
         renderer
@@ -44,7 +44,7 @@ impl Block {
 
     async fn wait_for_output(&mut self) -> Result<Option<String>> {
         let data = match self.rx.next().await {
-            Some(data) => data,
+            Some(data) => data?,
             None => return Ok(None),
         };
         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
@@ -55,7 +55,7 @@ impl Block {
 impl BlockStreamConfig for crate::config::PulseVolumeConfig {
     fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{volume}}".to_string());
-        let (tx, rx) = futures::channel::mpsc::channel::<BlockData>(1);
+        let (tx, rx) = futures::channel::mpsc::channel::<Result<BlockData>>(1);
         let block = Block::new(name, template, rx, renderer)?;
         tokio::spawn(async move { monitor_sink(self.sink_name, tx).await });
 
@@ -121,20 +121,24 @@ impl PulseVolumeMonitor {
         Ok(Self { mainloop, context })
     }
 
-    fn add_sink(&mut self, sink_name: String, tx: Sender<BlockData>) {
+    fn add_sink(&mut self, sink_name: String, tx: Sender<Result<BlockData>>) {
         // Send the initial volume state
         send_block_data(self.context.clone(), sink_name.clone(), tx.clone());
         let context_clone = self.context.clone();
+        let tx_clone = tx.clone();
         self.context
             .borrow_mut()
             .set_subscribe_callback(Some(Box::new(move |_facility, _operation, _index| {
-                send_block_data(context_clone.clone(), sink_name.clone(), tx.clone());
+                send_block_data(context_clone.clone(), sink_name.clone(), tx_clone.clone());
             })));
         self.context
             .borrow_mut()
-            .subscribe(InterestMaskSet::SINK, |success| {
+            .subscribe(InterestMaskSet::SINK, move |success| {
                 if !success {
-                    eprintln!("Failed to subscribe to pulse audio events");
+                    send_or_print(
+                        Err(anyhow::anyhow!("Failed to subsribe to pulse audio events")),
+                        tx.clone(),
+                    );
                 }
             });
     }
@@ -147,7 +151,11 @@ impl PulseVolumeMonitor {
     }
 }
 
-fn send_block_data(context: Rc<RefCell<Context>>, sink_name: String, mut tx: Sender<BlockData>) {
+fn send_block_data(
+    context: Rc<RefCell<Context>>,
+    sink_name: String,
+    tx: Sender<Result<BlockData>>,
+) {
     let introspector = context.borrow().introspect();
     introspector.get_sink_info_by_name(&sink_name.clone(), move |list_result| {
         if let ListResult::Item(info) = list_result {
@@ -158,18 +166,44 @@ fn send_block_data(context: Rc<RefCell<Context>>, sink_name: String, mut tx: Sen
                 muted: info.mute,
                 volume,
             };
-            while let Err(error) = tx.try_send(data.clone()) {
-                if !error.is_full() {
-                    eprintln!("Failed to send volume data: {:?}", error);
-                    break;
-                }
-            }
+            send_or_print(Ok(data), tx.clone());
         }
     });
 }
 
-async fn monitor_sink(sink_name: String, tx: Sender<BlockData>) -> Result<()> {
-    let mut monitor = PulseVolumeMonitor::new()?;
-    monitor.add_sink(sink_name, tx);
-    monitor.run()
+async fn monitor_sink(sink_name: String, tx: Sender<Result<BlockData>>) {
+    let mut monitor = match PulseVolumeMonitor::new() {
+        Ok(monitor) => monitor,
+        Err(error) => {
+            send_or_print(
+                Err(anyhow::anyhow!(
+                    "Failed to construct pulse volume monitor: {:?}",
+                    error
+                )),
+                tx,
+            );
+            return;
+        }
+    };
+    monitor.add_sink(sink_name, tx.clone());
+    if let Err(error) = monitor.run() {
+        send_or_print(
+            Err(anyhow::anyhow!("PulseAudio mainloop failed: {:?}", error)),
+            tx,
+        );
+    }
+}
+
+fn send_or_print(mut message: Result<BlockData>, mut tx: Sender<Result<BlockData>>) {
+    while let Err(error) = tx.try_send(message) {
+        if error.is_disconnected() {
+            eprintln!(
+                "Pulse volume monitor channel disconnected. Failed to send {:?}",
+                error.into_inner(),
+            );
+            return;
+        } else {
+            message = error.into_inner();
+        }
+    }
 }
