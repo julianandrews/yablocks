@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
         blocks: block_configs,
     } = config::load_config(args.configfile).context("Failed to load config")?;
     let renderer = renderer::build(template).context("Failed to build template renderer")?;
-    let block_streams: Vec<_> = block_configs
+    let block_streams = block_configs
         .into_iter()
         .map(|(name, config)| {
             config
@@ -34,9 +34,8 @@ async fn main() -> Result<()> {
                 eprintln!("{:?}", error);
                 None
             }
-        })
-        .collect();
-    let mut stream = select_all(block_streams.into_iter());
+        });
+    let mut stream = select_all(block_streams);
 
     let mut outputs: BTreeMap<String, String> = BTreeMap::new();
     while let Some((name, result)) = stream.next().await {
