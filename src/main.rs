@@ -28,7 +28,14 @@ async fn main() -> Result<()> {
                 .to_stream(name.clone(), renderer.clone())
                 .context(format!("Failed to initialize block '{}'", name))
         })
-        .collect::<Result<_>>()?;
+        .filter_map(|result| match result {
+            Ok(block_stream) => Some(block_stream),
+            Err(error) => {
+                eprintln!("{:?}", error);
+                None
+            }
+        })
+        .collect();
     let mut stream = select_all(block_streams.into_iter());
 
     let mut outputs: BTreeMap<String, String> = BTreeMap::new();
