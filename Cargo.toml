@@ -2,8 +2,11 @@
 name = "yablocks"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Julian Andrews <jandrews271@gmail.com>"]
+readme = "README.md"
+license = "BSD-3-Clause"
+repository = "https://github.com/julianandrews/yablocks"
+description = "Yet another block-based status bar generator"
 
 [dependencies]
 anyhow = "1.0.66"
@@ -20,3 +23,18 @@ tokio = { version = "1.21.2", features = ["full"] }
 toml = "0.5.9"
 xdg = "2.4.1"
 libc = "0.2.137"
+
+[package.metadata.deb]
+extended-description = """\
+Yet another block-based status generator.
+
+Generate templated status bar output for bars like dzen2, lemonbar or
+xmobar."""
+license-file = ["LICENSE", "0"]
+maintainer-scripts = "pkg/debian/"
+assets = [
+    ["target/release/yablocks", "/usr/bin/", "755"],
+    ["README.md", "/usr/share/doc/yablocks/", "644"],
+    ["examples/*", "/usr/share/doc/yablocks/examples", "644"],
+
+]
