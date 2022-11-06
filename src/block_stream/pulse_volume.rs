@@ -57,7 +57,7 @@ impl BlockStreamConfig for crate::config::PulseVolumeConfig {
         let template = self.template.unwrap_or_else(|| "{{volume}}".to_string());
         let (tx, rx) = futures::channel::mpsc::channel::<Result<BlockData>>(1);
         let block = Block::new(name, template, rx, renderer)?;
-        tokio::spawn(async move { monitor_sink(self.sink_name, tx).await });
+        tokio::task::spawn_blocking(move || monitor_sink(self.sink_name, tx));
 
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
@@ -171,7 +171,7 @@ fn send_block_data(
     });
 }
 
-async fn monitor_sink(sink_name: String, tx: Sender<Result<BlockData>>) {
+fn monitor_sink(sink_name: String, tx: Sender<Result<BlockData>>) {
     let mut monitor = match PulseVolumeMonitor::new() {
         Ok(monitor) => monitor,
         Err(error) => {
