@@ -16,7 +16,7 @@ netlink-packet-route = "0.13.0"
 notify = "5.0.0"
 rtnetlink = "0.11.0"
 serde = { version = "1.0.147", features = ["derive"] }
-tokio = { version = "1.21.2", features = ["full", "signal"] }
+tokio = { version = "1.21.2", features = ["full"] }
 toml = "0.5.9"
 xdg = "2.4.1"
 libc = "0.2.137"
