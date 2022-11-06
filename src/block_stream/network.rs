@@ -51,11 +51,11 @@ impl Block {
         })
     }
 
-    fn get_initial_output(&self) -> Result<String> {
+    async fn get_initial_output(&self) -> Result<String> {
         let mut path = std::path::PathBuf::from("/sys/class/net");
         path.push(&self.device);
         path.push("operstate");
-        let operstate = std::fs::read_to_string(path)?.trim().to_string();
+        let operstate = tokio::fs::read_to_string(path).await?.trim().to_string();
         let data = self.build_block_data(operstate);
         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
         Ok(output)
@@ -140,7 +140,7 @@ impl BlockStreamConfig for crate::config::NetworkConfig {
 
         let block = Block::new(name.clone(), template, self.device, messages, renderer)?;
 
-        let initial_output = block.get_initial_output()?;
+        let initial_output = futures::executor::block_on(block.get_initial_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
 
         let stream = stream::unfold(block, move |mut block| async {
