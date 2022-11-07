@@ -27,8 +27,9 @@ yablocks works well as a standalone binary.
 
 ## Usage
 
-yablocks waits for events and outputs text to stdout. For the most part, you'll
-just want to pipe the output of yablocks to your status bar. For instance:
+yablocks waits for events and outputs text to `stdout`. For the most part,
+you'll just want to pipe the output of yablocks to your status bar. For
+instance:
 
     yablocks | dzen2
 
@@ -40,11 +41,11 @@ or:
 
     yablocks | xmobar
 
-When running lemonblocks with clickable areas you may want to do something like:
+When running lemonbar with clickable areas you may want to do something like:
 
     yablocks | lemonbar | sh
 
-If launching xmobar from XMonad you can use yablocks with `CommandReader`:
+If launching xmobar from XMonad you can instead use yablocks with `CommandReader`:
 
     Config {
         commands = [
@@ -61,9 +62,8 @@ this in the yablocks XDG config directory (by default
 the command line.
 
 A config file is a table of blocks along with a template referencing the block
-names. See the examples in the git repo under `examples` or on your computer
-under `/usr/share/doc/yablocks/examples` if you've installed the `.deb`
-package.
+names. See the examples
+[here](https://github.com/julianandrews/yablocks/tree/master/examples).
 
 ### Testing Config
 
@@ -138,11 +138,11 @@ Watch a file for changes and show content.
 | file     | string | file to monitor      |
 | contents | string | contents of the file |
 
-Note that inotify is based on inodes. The inotify block will monitor the
-directory containing the configured file so that if the file is deleted
-and recreated the block will continue to function, but if the directory itself
-is deleted the inode being watch will be gone, and changes won't be detected
-until a restart.
+Note: inotify is based on inodes. The inotify block will monitor the directory
+containing the configured file so that if the file is deleted and recreated the
+block will continue to function, but if the directory itself is deleted the
+inode being watched will be gone, and changes won't be detected until the
+directory is recreated and yablocks is restarted.
 
 ### network
 
@@ -171,10 +171,10 @@ Monitor a pulse audio sink.
 
 #### Inputs
 
-| name      | type   | description                                      |
-| --------- | ------ | ------------------------------------------------ |
-| template  | string | template string (optional, default `{{volume}}`) |
-| sink-name | string | pulse audio sink to monitor                      |
+| name      | type   | description                                                      |
+| --------- | ------ | ---------------------------------------------------------------- |
+| template  | string | template string (optional, default `{{volume}}`)                 |
+| sink-name | string | pulse audio sink to monitor (optional, defaults to default sink) |
 
 #### Ouputs
 

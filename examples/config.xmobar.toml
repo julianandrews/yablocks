@@ -13,7 +13,6 @@ template = "{{#if contents}} | <fc=#FF0>!</fc>{{/if}}"
 
 [ blocks.volume ]
 kind = "pulse-volume"
-sink-name = "actual-sink-name"
 template = """
 <action=`pactl set-sink-mute \"{{sink_name}}\" toggle` button=2>\
 <action=`pactl set-sink-volume \"{{sink_name}}\" -5%` button=1>\

@@ -90,7 +90,7 @@ pub struct NetworkConfig {
 #[serde(rename_all = "kebab-case")]
 pub struct PulseVolumeConfig {
     pub template: Option<String>,
-    pub sink_name: String,
+    pub sink_name: Option<String>,
 }
 
 /// Template Values:

@@ -6,6 +6,7 @@ use anyhow::Result;
 use futures::channel::mpsc::{Receiver, Sender};
 use futures::{stream, StreamExt};
 use pulse::callbacks::ListResult;
+use pulse::context::introspect::SinkInfo;
 use pulse::context::subscribe::InterestMaskSet;
 use pulse::context::{Context, FlagSet as ContextFlagSet};
 use pulse::mainloop::standard::IterateResult;
@@ -121,7 +122,7 @@ impl PulseVolumeMonitor {
         Ok(Self { mainloop, context })
     }
 
-    fn add_sink(&mut self, sink_name: String, tx: Sender<Result<BlockData>>) {
+    fn add_sink(&mut self, sink_name: Option<String>, tx: Sender<Result<BlockData>>) {
         // Send the initial volume state
         send_block_data(self.context.clone(), sink_name.clone(), tx.clone());
         let context_clone = self.context.clone();
@@ -151,27 +152,7 @@ impl PulseVolumeMonitor {
     }
 }
 
-fn send_block_data(
-    context: Rc<RefCell<Context>>,
-    sink_name: String,
-    tx: Sender<Result<BlockData>>,
-) {
-    let introspector = context.borrow().introspect();
-    introspector.get_sink_info_by_name(&sink_name.clone(), move |list_result| {
-        if let ListResult::Item(info) = list_result {
-            let volume =
-                (100.0 * info.volume.avg().0 as f64 / Volume::NORMAL.0 as f64).round() as u32;
-            let data = BlockData {
-                sink_name: sink_name.clone(),
-                muted: info.mute,
-                volume,
-            };
-            send_or_print(Ok(data), tx.clone());
-        }
-    });
-}
-
-fn monitor_sink(sink_name: String, tx: Sender<Result<BlockData>>) {
+fn monitor_sink(sink_name: Option<String>, tx: Sender<Result<BlockData>>) {
     let mut monitor = match PulseVolumeMonitor::new() {
         Ok(monitor) => monitor,
         Err(error) => {
@@ -194,6 +175,55 @@ fn monitor_sink(sink_name: String, tx: Sender<Result<BlockData>>) {
     }
 }
 
+fn send_block_data(
+    context: Rc<RefCell<Context>>,
+    sink_name: Option<String>,
+    tx: Sender<Result<BlockData>>,
+) {
+    match sink_name {
+        Some(sink_name) => {
+            send_block_data_for_sink_name(context, sink_name, tx);
+        }
+        None => {
+            let introspector = context.borrow().introspect();
+            introspector.get_server_info(move |info| match &info.default_sink_name {
+                Some(sink_name) => send_block_data_for_sink_name(
+                    context.clone(),
+                    sink_name.to_string(),
+                    tx.clone(),
+                ),
+                None => send_or_print(
+                    Err(anyhow::anyhow!("No default pulse audio sink found")),
+                    tx.clone(),
+                ),
+            });
+        }
+    }
+}
+
+fn send_block_data_for_sink_name(
+    context: Rc<RefCell<Context>>,
+    sink_name: String,
+    tx: Sender<Result<BlockData>>,
+) {
+    let introspector = context.borrow().introspect();
+    let sink_name_clone = sink_name.clone();
+    let callback = move |list_result: ListResult<&SinkInfo>| {
+        if let ListResult::Item(info) = list_result {
+            let volume =
+                (100.0 * info.volume.avg().0 as f64 / Volume::NORMAL.0 as f64).round() as u32;
+            let data = BlockData {
+                sink_name: sink_name_clone.clone(),
+                muted: info.mute,
+                volume,
+            };
+            send_or_print(Ok(data), tx.clone());
+        }
+    };
+    introspector.get_sink_info_by_name(&sink_name, callback);
+}
+
+/// Send a message down the channel or print to stdout if the channel is disconnected.
 fn send_or_print(mut message: Result<BlockData>, mut tx: Sender<Result<BlockData>>) {
     while let Err(error) = tx.try_send(message) {
         if error.is_disconnected() {

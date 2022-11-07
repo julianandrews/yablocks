@@ -13,7 +13,6 @@ template = "{{#if contents}} | ^fg(#FF0)!^fg(){{/if}}"
 
 [ blocks.volume ]
 kind = "pulse-volume"
-sink-name = "actual-sink-name"
 template = """
 {{~#if muted~}}
     ^fg(#F00)
