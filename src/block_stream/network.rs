@@ -20,8 +20,8 @@ struct BlockData {
     device: String,
     operstate: String,
     wireless: bool,
-    essid: String,
-    quality: u8,
+    essid: Option<String>,
+    quality: Option<u8>,
 }
 
 struct Block {
@@ -62,25 +62,46 @@ impl Block {
     }
 
     fn build_block_data(&self, operstate: String) -> BlockData {
-        match iwlib::get_wireless_info(self.device.clone()) {
-            Some(info) => BlockData {
-                device: self.device.clone(),
-                operstate,
-                wireless: true,
-                essid: info.wi_essid,
-                quality: info.wi_quality,
-            },
-            None => BlockData {
+        match self.build_block_data_with_wifi(&operstate) {
+            Ok(Some(data)) => data,
+            _ => BlockData {
                 device: self.device.clone(),
                 operstate,
                 wireless: false,
-                essid: "".to_string(),
-                quality: 0,
+                essid: None,
+                quality: None,
             },
         }
     }
 
-    fn parse_message(&self, message: NetlinkMessage<RtnlMessage>) -> Option<BlockData> {
+    fn build_block_data_with_wifi(&self, operstate: &str) -> Result<Option<BlockData>> {
+        let interfaces = nl80211::Socket::connect()?.get_interfaces_info()?;
+        for interface in interfaces {
+            if let Some(data) = &interface.name {
+                let device = String::from_utf8_lossy(data)
+                    .trim_end_matches(char::from(0))
+                    .to_owned()
+                    .to_string();
+                if device == self.device {
+                    let essid = interface.ssid.as_ref().map(nl80211::parse_string);
+                    let station = interface.get_station_info()?;
+                    let signal_strength = station.average_signal.as_ref().map(nl80211::parse_i8);
+                    let quality =
+                        signal_strength.map(|dbm| 2 * (dbm.max(-100).min(-50) + 100) as u8);
+                    return Ok(Some(BlockData {
+                        device,
+                        operstate: operstate.to_string(),
+                        wireless: true,
+                        essid,
+                        quality,
+                    }));
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    fn parse_message(&self, message: NetlinkMessage<RtnlMessage>) -> Option<String> {
         if let NetlinkPayload::InnerMessage(message) = message.payload {
             match message {
                 RtnlMessage::NewLink(link_message)
@@ -102,10 +123,8 @@ impl Block {
                             }
                             _ => (),
                         }
-                        if link_matches {
-                            if let Some(operstate) = operstate {
-                                return Some(self.build_block_data(operstate));
-                            }
+                        if link_matches && operstate.is_some() {
+                            return operstate;
                         }
                     }
                 }
@@ -119,7 +138,8 @@ impl Block {
         loop {
             match self.messages.next().await {
                 Some((message, _)) => {
-                    if let Some(data) = self.parse_message(message) {
+                    if let Some(operstate) = self.parse_message(message) {
+                        let data = self.build_block_data(operstate);
                         let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
                         return Ok(Some(output));
                     }
