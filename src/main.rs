@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
         .map(|(name, config)| {
             config
                 .to_stream(name.clone(), renderer.clone())
-                .context(format!("Failed to initialize block '{}'", name))
+                .with_context(|| format!("Failed to initialize block '{}'", name))
         })
         .filter_map(|result| match result {
             Ok(block_stream) => Some(block_stream),
