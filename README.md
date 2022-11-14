@@ -62,7 +62,10 @@ this in the yablocks XDG config directory (by default
 the command line.
 
 A config file is a table of blocks along with a template referencing the block
-names. See the examples
+names. Both the main template and any individual block templates use
+[Handlebars](https://handlebarsjs.com/) as the templating engine. Outputs from
+blocks can be used in their corresponding templates. See the documentation below
+for available outputs. See the examples
 [here](https://github.com/julianandrews/yablocks/tree/master/examples).
 
 ### Testing Config
@@ -75,8 +78,8 @@ command line and see what output you get.
 
 ## Blocks
 
-Blocks have configurable inputs, and outputs which can be referenced in your
-templates.
+Blocks have inputs which can be provided in your config file, and outputs which
+can be referenced in the block's template.
 
 ### command
 
@@ -180,7 +183,7 @@ Monitor a pulse audio sink.
 
 | name      | type    | description               |
 | --------  | ------- | ------------------------- |
-| sink-name | string  | provided sink name        |
+| sink-name | string  | pulse audio sink name     |
 | volume    | number  | volume level              |
 | muted     | boolean | whether the sink is muted |
 

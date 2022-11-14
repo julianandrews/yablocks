@@ -223,7 +223,7 @@ fn send_block_data_for_sink_name(
     introspector.get_sink_info_by_name(&sink_name, callback);
 }
 
-/// Send a message down the channel or print to stdout if the channel is disconnected.
+/// Send a message down the channel or print to stderr if the channel is disconnected.
 fn send_or_print(mut message: Result<BlockData>, mut tx: Sender<Result<BlockData>>) {
     while let Err(error) = tx.try_send(message) {
         if error.is_disconnected() {
