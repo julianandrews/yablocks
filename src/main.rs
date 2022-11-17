@@ -20,7 +20,8 @@ async fn main() -> Result<()> {
         template,
         blocks: block_configs,
     } = config::load_config(args.configfile).context("Failed to load config")?;
-    let renderer = renderer::build(template).context("Failed to build template renderer")?;
+    let renderer =
+        renderer::Renderer::new(&template).context("Failed to build template renderer")?;
     let block_streams = block_configs
         .into_iter()
         .map(|(name, config)| {
@@ -37,10 +38,10 @@ async fn main() -> Result<()> {
         });
     let mut stream = select_all(block_streams);
 
-    let mut outputs: BTreeMap<String, String> = BTreeMap::new();
+    let mut context = BTreeMap::new();
     while let Some((name, result)) = stream.next().await {
         match result {
-            Ok(value) => outputs.insert(name, value),
+            Ok(value) => context.insert(name, value),
             Err(error) => {
                 eprintln!("Error from {}: {:?}", name, error);
                 continue;
@@ -50,15 +51,13 @@ async fn main() -> Result<()> {
         while let Some((name, result)) = stream.next().now_or_never().flatten() {
             match result {
                 Ok(value) => {
-                    outputs.insert(name, value);
+                    context.insert(name, value);
                 }
                 Err(error) => eprintln!("Error from {}: {:?}", name, error),
             };
         }
         let output = renderer
-            .lock()
-            .unwrap()
-            .render("", &outputs)
+            .render("", &context)
             .context("Failed to render template")?;
         println!("{}", output);
     }

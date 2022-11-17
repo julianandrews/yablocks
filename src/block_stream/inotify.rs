@@ -27,7 +27,7 @@ impl Block {
         name: String,
         template: String,
         file: std::path::PathBuf,
-        renderer: Renderer,
+        mut renderer: Renderer,
     ) -> Result<Self> {
         let (mut tx, rx) = futures::channel::mpsc::channel(1);
         let mut watcher = notify::RecommendedWatcher::new(
@@ -40,10 +40,7 @@ impl Block {
         )?;
         let watch_dir = file.parent().unwrap_or_else(|| std::path::Path::new("/"));
         watcher.watch(watch_dir, notify::RecursiveMode::NonRecursive)?;
-        renderer
-            .lock()
-            .unwrap()
-            .register_template_string(&name, template)?;
+        renderer.add_template(&name, &template)?;
         Ok(Self {
             name,
             file,
@@ -67,7 +64,7 @@ impl Block {
 
     async fn get_output(&mut self) -> Result<String> {
         let data = self.get_data().await?;
-        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
+        let output = self.renderer.render(&self.name, data)?;
         Ok(output)
     }
 

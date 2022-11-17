@@ -37,12 +37,9 @@ impl Block {
         template: String,
         device: String,
         messages: Receiver,
-        renderer: Renderer,
+        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer
-            .lock()
-            .unwrap()
-            .register_template_string(&name, template)?;
+        renderer.add_template(&name, &template)?;
         Ok(Self {
             name,
             device,
@@ -57,7 +54,7 @@ impl Block {
         path.push("operstate");
         let operstate = tokio::fs::read_to_string(path).await?.trim().to_string();
         let data = self.build_block_data(operstate);
-        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
+        let output = self.renderer.render(&self.name, data)?;
         Ok(output)
     }
 
@@ -140,7 +137,7 @@ impl Block {
                 Some((message, _)) => {
                     if let Some(operstate) = self.parse_message(message) {
                         let data = self.build_block_data(operstate);
-                        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
+                        let output = self.renderer.render(&self.name, data)?;
                         return Ok(Some(output));
                     }
                 }

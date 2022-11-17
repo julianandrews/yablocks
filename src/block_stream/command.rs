@@ -25,12 +25,9 @@ impl Block {
         template: String,
         command: String,
         args: Vec<String>,
-        renderer: Renderer,
+        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer
-            .lock()
-            .unwrap()
-            .register_template_string(&name, template)?;
+        renderer.add_template(&name, &template)?;
         let stdout = tokio::process::Command::new(&command)
             .args(&args)
             .stdout(std::process::Stdio::piped())
@@ -63,7 +60,7 @@ impl Block {
         let data = self.get_data().await?;
         match data {
             Some(data) => {
-                let result = self.renderer.lock().unwrap().render(&self.name, &data)?;
+                let result = self.renderer.render(&self.name, data)?;
                 Ok(Some(result))
             }
             None => Ok(None),

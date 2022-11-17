@@ -1,4 +1,4 @@
-template = "{{date}}{{local-mail}} | {{volume}} | {{wifi}}"
+template = "{{date}}{{local_mail}} | Mem: {{memory}} | Vol: {{volume}} | {{wifi}}"
 
 [ blocks.date ]
 kind = "interval"
@@ -6,39 +6,56 @@ command = "date"
 args = ['+%a %b %d %R']
 interval = 60
 
-[ blocks.local-mail ]
+[ blocks.local_mail ]
 kind = "inotify"
 file = "/var/mail/username"
-template = "{{#if contents}} | %{F#FF0}!%{F-}{{/if}}"
+template = "{% if contents %} | %{F#FF0}!%{F-}{% endif %}"
+
+[ blocks.memory ]
+kind = "interval"
+command = "awk"
+args = [
+    "/MemTotal:/{total=$2}/MemFree:/{free=$2}END{printf \"%.0f\", 100*free/total}",
+    "/proc/meminfo",
+    ]
+interval = 30
+template = """
+{%- if output | int > 80 -%}
+    %{F#F00}
+{%- else -%}
+    %{F#FFF}
+{%- endif -%}
+{{output}}%%%{F-}\
+"""
 
 [ blocks.volume ]
 kind = "pulse-volume"
 template = """
-{{~#if muted~}}
-    %{F#F00}
-{{~else~}}{{~#if (lte volume 35)~}}
-    %{F#555}
-{{~else~}}{{~#if (gt volume 100)~}}
-    %{F#FF0}
-{{~else~}}
-    %{F#FFF}
-{{~/if~}}{{~/if~}}{{~/if~}}
 %{A:pactl set-sink-volume {{sink_name}} -5%:}\
 %{A2:pactl set-sink-mute {{sink_name}} toggle:}\
 %{A3:pactl set-sink-volume {{sink_name}} +5%:}\
 %{A4:pactl set-sink-volume {{sink_name}} +1%:}\
 %{A5:pactl set-sink-volume {{sink_name}} -1%:}\
+{%- if muted -%}
+    %{F#F00}
+{%- elif volume <= 35 -%}
+    %{F#555}
+{%- elif volume > 100 -%}
+    %{F#FF0}
+{%- else -%}
+    %{F#FFF}
+{%- endif -%}
 {{volume}}%%\
-%{A}%{A}%{A}%{A}%{A}%{F-}\
+%{F-}%{A}%{A}%{A}%{A}%{A}\
 """
 
 [ blocks.wifi ]
 kind = "network"
-device = "wlan0"
+device = "wlo1"
 template = """
-{{~#if (eq operstate "up")~}}
+{%- if operstate == "up" -%}
     %{F#FFF}{{essid}}%{F-}
-{{~else~}}
-    %{F#F00}network down%{F-}
-{{~/if~}}
+{%- else -%}
+    %{F#F00}{{device}} {{operstate}}%{F-}
+{%- endif -%}
 """

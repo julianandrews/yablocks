@@ -30,12 +30,9 @@ impl Block {
         command: String,
         args: Vec<String>,
         num: RTSigNum,
-        renderer: Renderer,
+        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer
-            .lock()
-            .unwrap()
-            .register_template_string(&name, template)?;
+        renderer.add_template(&name, &template)?;
         let signal = signal(SignalKind::from_raw(num.0))?;
         Ok(Self {
             name,
@@ -67,7 +64,7 @@ impl Block {
 
     async fn get_output(&self) -> Result<String> {
         let data = self.get_data().await?;
-        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
+        let output = self.renderer.render(&self.name, data)?;
         Ok(output)
     }
 

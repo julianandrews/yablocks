@@ -1,6 +1,6 @@
 [package]
 name = "yablocks"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Julian Andrews <jandrews271@gmail.com>"]
 readme = "README.md"
@@ -12,7 +12,6 @@ description = "Yet another block-based status bar generator"
 anyhow = "1.0.66"
 clap = { version = "3.2.22", features = ["derive"] }
 futures = "0.3.25"
-handlebars = "4.3.5"
 pulse = { package = "libpulse-binding", version = "2.26.0" }
 netlink-packet-route = "0.13.0"
 notify = "5.0.0"
@@ -23,6 +22,8 @@ toml = "0.5.9"
 xdg = "2.4.1"
 libc = "0.2.137"
 nl80211 = "0.0.2"
+tera = "1.17.1"
+serde_json = "1.0.87"
 
 [package.metadata.deb]
 extended-description = """\

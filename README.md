@@ -8,14 +8,29 @@ dzen2, xmobar, or lemonbar.
 
 ## Why yet another?
 
-I wanted a status bar generator that
+So many status bar generators are focused around polling shell scripts. This is
+slow, resource inefficient, and for latency sensitive displays like volume
+meters, downright annoying.
 
-- provided event based volume controls and network status,
+I wanted a status bar generator that:
+
 - was status bar agnostic,
-- gave good control of the output with flexible templating, and
-- let me avoid running half a dozen slow, resource intensive shell scripts.
+- could output the exact markup I wanted with conditional formatting,
+- let me avoid running half a dozen slow, resource intensive shell scripts, and
+- made it easy to implement event based data sources.
 
-None of the existing status bar generators quite hit all the checkboxes.
+Since it incorporates a fully featured templating engine
+([Tera](https://tera.netlify.app/)), yablocks decouples data generation from
+display. This means that the same block can be used to render the data with the
+exact text and markup you want for for any status bar. This also means that you
+often won't need to write and run wrapper scripts around a binary just to do
+the formatting.
+
+yablocks also goes out of its way to support event based inputs like inotify
+based file watchers, signal watchers, and command readers.
+
+You can use yablocks to run a shell script every 10 seconds if you want to, but
+yablocks tries to make it so that you don't have to.
 
 ## Installation
 
@@ -56,17 +71,20 @@ If launching xmobar from XMonad you can instead use yablocks with `CommandReader
 
 ## Configuration
 
-You'll need to write a [toml](https://toml.io/en/) config file. You can put
-this in the yablocks XDG config directory (by default
+You'll need to write a [toml](https://toml.io/en/) config file. yablocks will
+look for in in your XDG config directory (by default
 `~/.config/yablocks/config.toml`), or you can specify the config file path on
 the command line.
 
 A config file is a table of blocks along with a template referencing the block
 names. Both the main template and any individual block templates use
-[Handlebars](https://handlebarsjs.com/) as the templating engine. Outputs from
+[Tera](https://tera.netlify.app/) as the templating engine. Outputs from
 blocks can be used in their corresponding templates. See the documentation below
-for available outputs. See the examples
-[here](https://github.com/julianandrews/yablocks/tree/master/examples).
+for available outputs. For ideas, see the examples
+[here](https://github.com/julianandrews/yablocks/tree/master/examples). For
+compatibility I've kept fancy fonts out of the examples, but if your status bar
+supports it, check out [Nerd Fonts](https://www.nerdfonts.com/) to add some flair
+to your status bar.
 
 ### Testing Config
 

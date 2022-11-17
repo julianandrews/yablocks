@@ -34,12 +34,9 @@ impl Block {
         name: String,
         template: String,
         rx: Receiver<Result<BlockData>>,
-        renderer: Renderer,
+        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer
-            .lock()
-            .unwrap()
-            .register_template_string(&name, template)?;
+        renderer.add_template(&name, &template)?;
         Ok(Self { name, rx, renderer })
     }
 
@@ -48,7 +45,7 @@ impl Block {
             Some(data) => data?,
             None => return Ok(None),
         };
-        let output = self.renderer.lock().unwrap().render(&self.name, &data)?;
+        let output = self.renderer.render(&self.name, data)?;
         Ok(Some(output))
     }
 }
