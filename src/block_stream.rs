@@ -4,6 +4,8 @@ mod interval;
 mod network;
 mod pulse_volume;
 mod signal;
+mod stdin;
+mod util;
 
 use anyhow::Result;
 
@@ -25,6 +27,7 @@ impl BlockStreamConfig for config::BlockConfig {
             config::BlockConfig::Network(config) => config.to_stream(name, renderer),
             config::BlockConfig::PulseVolume(config) => config.to_stream(name, renderer),
             config::BlockConfig::Signal(config) => config.to_stream(name, renderer),
+            config::BlockConfig::Stdin(config) => config.to_stream(name, renderer),
         }
     }
 }

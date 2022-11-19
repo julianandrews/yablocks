@@ -32,6 +32,7 @@ pub enum BlockConfig {
     Network(NetworkConfig),
     PulseVolume(PulseVolumeConfig),
     Signal(SignalConfig),
+    Stdin(StdinConfig),
 }
 
 /// Template Values:
@@ -124,4 +125,12 @@ impl TryFrom<i32> for RTSigNum {
             Ok(RTSigNum(value))
         }
     }
+}
+
+/// Template Values:
+///   - output
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct StdinConfig {
+    pub template: Option<String>,
 }

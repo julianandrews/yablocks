@@ -1,6 +1,6 @@
 [package]
 name = "yablocks"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["Julian Andrews <jandrews271@gmail.com>"]
 readme = "README.md"
@@ -24,6 +24,7 @@ libc = "0.2.137"
 nl80211 = "0.0.2"
 tera = "1.17.1"
 serde_json = "1.0.87"
+once_cell = "1.16.0"
 
 [package.metadata.deb]
 extended-description = """\

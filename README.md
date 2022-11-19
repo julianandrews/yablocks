@@ -228,6 +228,23 @@ between SIGRTMIN and SIGRTMAX (usually 34-64 inclusive for Linux).
 | signal   | number        | RT signal provided                    |
 | output   | string        | output of the last command invocation |
 
+### stdin
+
+Read from stdin and show output for each line.
+
+#### Inputs
+
+| name     | type   | description                                      |
+| -------- | ------ | ------------------------------------------------ |
+| template | string | template string (optional, default `{{output}}`) |
+
+#### Outputs
+
+| name     | type   | description                 |
+| -------- | ------ | --------------------------- |
+| output   | string | last line of command output |
+
+
 ## Contributing
 
 Pull requests are welcome. For larger features or changes please open an issue

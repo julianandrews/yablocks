@@ -14,7 +14,7 @@ use pulse::mainloop::standard::Mainloop;
 use pulse::proplist::Proplist;
 use pulse::volume::Volume;
 
-use super::{BlockStream, BlockStreamConfig, Renderer};
+use super::{util::send_or_eprint, BlockStream, BlockStreamConfig, Renderer};
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
@@ -119,7 +119,7 @@ impl PulseVolumeMonitor {
         Ok(Self { mainloop, context })
     }
 
-    fn add_sink(&mut self, sink_name: Option<String>, tx: Sender<Result<BlockData>>) {
+    fn add_sink(&mut self, sink_name: Option<String>, mut tx: Sender<Result<BlockData>>) {
         // Send the initial volume state
         send_block_data(self.context.clone(), sink_name.clone(), tx.clone());
         let context_clone = self.context.clone();
@@ -133,9 +133,9 @@ impl PulseVolumeMonitor {
             .borrow_mut()
             .subscribe(InterestMaskSet::SINK, move |success| {
                 if !success {
-                    send_or_print(
+                    send_or_eprint(
                         Err(anyhow::anyhow!("Failed to subsribe to pulse audio events")),
-                        tx.clone(),
+                        &mut tx,
                     );
                 }
             });
@@ -149,25 +149,25 @@ impl PulseVolumeMonitor {
     }
 }
 
-fn monitor_sink(sink_name: Option<String>, tx: Sender<Result<BlockData>>) {
+fn monitor_sink(sink_name: Option<String>, mut tx: Sender<Result<BlockData>>) {
     let mut monitor = match PulseVolumeMonitor::new() {
         Ok(monitor) => monitor,
         Err(error) => {
-            send_or_print(
+            send_or_eprint(
                 Err(anyhow::anyhow!(
                     "Failed to construct pulse volume monitor: {:?}",
                     error
                 )),
-                tx,
+                &mut tx,
             );
             return;
         }
     };
     monitor.add_sink(sink_name, tx.clone());
     if let Err(error) = monitor.run() {
-        send_or_print(
+        send_or_eprint(
             Err(anyhow::anyhow!("PulseAudio mainloop failed: {:?}", error)),
-            tx,
+            &mut tx,
         );
     }
 }
@@ -175,7 +175,7 @@ fn monitor_sink(sink_name: Option<String>, tx: Sender<Result<BlockData>>) {
 fn send_block_data(
     context: Rc<RefCell<Context>>,
     sink_name: Option<String>,
-    tx: Sender<Result<BlockData>>,
+    mut tx: Sender<Result<BlockData>>,
 ) {
     match sink_name {
         Some(sink_name) => {
@@ -189,9 +189,9 @@ fn send_block_data(
                     sink_name.to_string(),
                     tx.clone(),
                 ),
-                None => send_or_print(
+                None => send_or_eprint(
                     Err(anyhow::anyhow!("No default pulse audio sink found")),
-                    tx.clone(),
+                    &mut tx,
                 ),
             });
         }
@@ -201,7 +201,7 @@ fn send_block_data(
 fn send_block_data_for_sink_name(
     context: Rc<RefCell<Context>>,
     sink_name: String,
-    tx: Sender<Result<BlockData>>,
+    mut tx: Sender<Result<BlockData>>,
 ) {
     let introspector = context.borrow().introspect();
     let sink_name_clone = sink_name.clone();
@@ -214,23 +214,8 @@ fn send_block_data_for_sink_name(
                 muted: info.mute,
                 volume,
             };
-            send_or_print(Ok(data), tx.clone());
+            send_or_eprint(Ok(data), &mut tx);
         }
     };
     introspector.get_sink_info_by_name(&sink_name, callback);
-}
-
-/// Send a message down the channel or print to stderr if the channel is disconnected.
-fn send_or_print(mut message: Result<BlockData>, mut tx: Sender<Result<BlockData>>) {
-    while let Err(error) = tx.try_send(message) {
-        if error.is_disconnected() {
-            eprintln!(
-                "Pulse volume monitor channel disconnected. Failed to send {:?}",
-                error.into_inner(),
-            );
-            return;
-        } else {
-            message = error.into_inner();
-        }
-    }
 }

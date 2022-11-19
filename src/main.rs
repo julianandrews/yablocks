@@ -22,6 +22,13 @@ async fn main() -> Result<()> {
     } = config::load_config(args.configfile).context("Failed to load config")?;
     let renderer =
         renderer::Renderer::new(&template).context("Failed to build template renderer")?;
+
+    // Initialize the context so we can start rendering immediately
+    let mut context = BTreeMap::new();
+    for name in block_configs.keys() {
+        context.insert(name.clone(), "".to_string());
+    }
+
     let block_streams = block_configs
         .into_iter()
         .map(|(name, config)| {
@@ -38,7 +45,6 @@ async fn main() -> Result<()> {
         });
     let mut stream = select_all(block_streams);
 
-    let mut context = BTreeMap::new();
     while let Some((name, result)) = stream.next().await {
         match result {
             Ok(value) => context.insert(name, value),
