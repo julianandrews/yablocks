@@ -7,7 +7,8 @@ use netlink_packet_route::{
 };
 use rtnetlink::sys::{AsyncSocket, SocketAddr};
 
-use super::{BlockStream, BlockStreamConfig, Renderer};
+use super::{BlockStream, BlockStreamConfig};
+use crate::RENDERER;
 
 static NL_GRP: u32 =
     1 << (RTNLGRP_LINK - 1) | 1 << (RTNLGRP_IPV4_IFADDR - 1) | 1 << (RTNLGRP_IPV6_IFADDR - 1);
@@ -28,23 +29,15 @@ struct Block {
     name: String,
     device: String,
     messages: Receiver,
-    renderer: Renderer,
 }
 
 impl Block {
-    fn new(
-        name: String,
-        template: String,
-        device: String,
-        messages: Receiver,
-        mut renderer: Renderer,
-    ) -> Result<Self> {
-        renderer.add_template(&name, &template)?;
+    fn new(name: String, template: String, device: String, messages: Receiver) -> Result<Self> {
+        RENDERER.add_template(&name, &template)?;
         Ok(Self {
             name,
             device,
             messages,
-            renderer,
         })
     }
 
@@ -54,7 +47,7 @@ impl Block {
         path.push("operstate");
         let operstate = tokio::fs::read_to_string(path).await?.trim().to_string();
         let data = self.build_block_data(operstate);
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
 
@@ -137,7 +130,7 @@ impl Block {
                 Some((message, _)) => {
                     if let Some(operstate) = self.parse_message(message) {
                         let data = self.build_block_data(operstate);
-                        let output = self.renderer.render(&self.name, data)?;
+                        let output = RENDERER.render(&self.name, data)?;
                         return Ok(Some(output));
                     }
                 }
@@ -148,14 +141,14 @@ impl Block {
 }
 
 impl BlockStreamConfig for crate::config::NetworkConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{operstate}}".to_string());
         let (mut conn, mut _handle, messages) = rtnetlink::new_connection()?;
         let addr = SocketAddr::new(0, NL_GRP);
         conn.socket_mut().socket_mut().bind(&addr)?;
         tokio::spawn(conn);
 
-        let block = Block::new(name.clone(), template, self.device, messages, renderer)?;
+        let block = Block::new(name.clone(), template, self.device, messages)?;
 
         let initial_output = futures::executor::block_on(block.get_initial_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });

@@ -2,8 +2,8 @@ use anyhow::Result;
 use futures::{stream, StreamExt};
 use tokio::signal::unix::{signal, Signal, SignalKind};
 
-use super::{BlockStream, BlockStreamConfig, Renderer};
-use crate::config::RTSigNum;
+use super::{BlockStream, BlockStreamConfig};
+use crate::{config::RTSigNum, RENDERER};
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
@@ -20,7 +20,6 @@ struct Block {
     args: Vec<String>,
     num: RTSigNum,
     signal: Signal,
-    renderer: Renderer,
 }
 
 impl Block {
@@ -30,9 +29,8 @@ impl Block {
         command: String,
         args: Vec<String>,
         num: RTSigNum,
-        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer.add_template(&name, &template)?;
+        RENDERER.add_template(&name, &template)?;
         let signal = signal(SignalKind::from_raw(num.0))?;
         Ok(Self {
             name,
@@ -40,7 +38,6 @@ impl Block {
             args,
             num,
             signal,
-            renderer,
         })
     }
 
@@ -64,7 +61,7 @@ impl Block {
 
     async fn get_output(&self) -> Result<String> {
         let data = self.get_data().await?;
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
 
@@ -76,16 +73,9 @@ impl Block {
 }
 
 impl BlockStreamConfig for crate::config::SignalConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(
-            name.clone(),
-            template,
-            self.command,
-            self.args,
-            self.signal,
-            renderer,
-        )?;
+        let block = Block::new(name.clone(), template, self.command, self.args, self.signal)?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {

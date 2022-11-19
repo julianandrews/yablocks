@@ -10,6 +10,7 @@ use futures::stream::select_all::select_all;
 use futures::{FutureExt, StreamExt};
 
 use block_stream::BlockStreamConfig;
+pub use renderer::RENDERER;
 
 static DEBOUNCE_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
@@ -20,8 +21,11 @@ async fn main() -> Result<()> {
         template,
         blocks: block_configs,
     } = config::load_config(args.configfile).context("Failed to load config")?;
-    let renderer =
-        renderer::Renderer::new(&template).context("Failed to build template renderer")?;
+
+    // Use the empty string for the root template to avoid conflicts with any block templates.
+    RENDERER
+        .add_template("", &template)
+        .context("Failed to build template renderer")?;
 
     // Initialize the context so we can start rendering immediately
     let mut context = BTreeMap::new();
@@ -33,7 +37,7 @@ async fn main() -> Result<()> {
         .into_iter()
         .map(|(name, config)| {
             config
-                .to_stream(name.clone(), renderer.clone())
+                .to_stream(name.clone())
                 .with_context(|| format!("Failed to initialize block '{}'", name))
         })
         .filter_map(|result| match result {
@@ -62,7 +66,7 @@ async fn main() -> Result<()> {
                 Err(error) => eprintln!("Error from {}: {:?}", name, error),
             };
         }
-        let output = renderer
+        let output = RENDERER
             .render("", &context)
             .context("Failed to render template")?;
         println!("{}", output);

@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
+use once_cell::sync::Lazy;
+
+pub static RENDERER: Lazy<Renderer> = Lazy::new(Renderer::new);
 
 #[derive(Debug, Clone)]
 pub struct Renderer {
@@ -8,17 +11,13 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(template: &str) -> Result<Self> {
-        let mut tera = tera::Tera::default();
-        // Use the empty string for the root template to avoid conflicts with any block templates.
-        tera.add_raw_template("", template)?;
-
-        Ok(Self {
-            tera: Arc::new(Mutex::new(tera)),
-        })
+    pub fn new() -> Self {
+        Self {
+            tera: Arc::new(Mutex::new(tera::Tera::default())),
+        }
     }
 
-    pub fn add_template(&mut self, name: &str, template: &str) -> Result<()> {
+    pub fn add_template(&self, name: &str, template: &str) -> Result<()> {
         self.tera.lock().unwrap().add_raw_template(name, template)?;
 
         Ok(())

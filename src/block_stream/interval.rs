@@ -1,7 +1,8 @@
 use anyhow::Result;
 use futures::{stream, StreamExt};
 
-use super::{BlockStream, BlockStreamConfig, Renderer};
+use super::{BlockStream, BlockStreamConfig};
+use crate::RENDERER;
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
@@ -17,7 +18,6 @@ struct Block {
     command: String,
     args: Vec<String>,
     interval: u64,
-    renderer: Renderer,
 }
 
 impl Block {
@@ -27,15 +27,13 @@ impl Block {
         command: String,
         args: Vec<String>,
         interval: u64,
-        mut renderer: Renderer,
     ) -> Result<Self> {
-        renderer.add_template(&name, &template)?;
+        RENDERER.add_template(&name, &template)?;
         Ok(Self {
             name,
             command,
             args,
             interval,
-            renderer,
         })
     }
 
@@ -59,7 +57,7 @@ impl Block {
 
     async fn get_output(&self) -> Result<String> {
         let data = self.get_data().await?;
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
 
@@ -71,7 +69,7 @@ impl Block {
 }
 
 impl BlockStreamConfig for crate::config::IntervalConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
         let block = Block::new(
             name.clone(),
@@ -79,7 +77,6 @@ impl BlockStreamConfig for crate::config::IntervalConfig {
             self.command,
             self.args,
             self.interval,
-            renderer,
         )?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });

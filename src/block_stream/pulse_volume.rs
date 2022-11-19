@@ -14,7 +14,8 @@ use pulse::mainloop::standard::Mainloop;
 use pulse::proplist::Proplist;
 use pulse::volume::Volume;
 
-use super::{util::send_or_eprint, BlockStream, BlockStreamConfig, Renderer};
+use super::{util::send_or_eprint, BlockStream, BlockStreamConfig};
+use crate::RENDERER;
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
@@ -26,18 +27,12 @@ struct BlockData {
 struct Block {
     name: String,
     rx: Receiver<Result<BlockData>>,
-    renderer: Renderer,
 }
 
 impl Block {
-    fn new(
-        name: String,
-        template: String,
-        rx: Receiver<Result<BlockData>>,
-        mut renderer: Renderer,
-    ) -> Result<Self> {
-        renderer.add_template(&name, &template)?;
-        Ok(Self { name, rx, renderer })
+    fn new(name: String, template: String, rx: Receiver<Result<BlockData>>) -> Result<Self> {
+        RENDERER.add_template(&name, &template)?;
+        Ok(Self { name, rx })
     }
 
     async fn wait_for_output(&mut self) -> Result<Option<String>> {
@@ -45,16 +40,16 @@ impl Block {
             Some(data) => data?,
             None => return Ok(None),
         };
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(Some(output))
     }
 }
 
 impl BlockStreamConfig for crate::config::PulseVolumeConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{volume}}".to_string());
         let (tx, rx) = futures::channel::mpsc::channel::<Result<BlockData>>(1);
-        let block = Block::new(name, template, rx, renderer)?;
+        let block = Block::new(name, template, rx)?;
         tokio::task::spawn_blocking(move || monitor_sink(self.sink_name, tx));
 
         let stream = stream::unfold(block, move |mut block| async {

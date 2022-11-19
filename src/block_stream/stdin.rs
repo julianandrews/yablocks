@@ -6,7 +6,8 @@ use futures::{stream, StreamExt};
 use once_cell::sync::Lazy;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use super::{util::send_or_eprint, BlockStream, BlockStreamConfig, Renderer};
+use super::{util::send_or_eprint, BlockStream, BlockStreamConfig};
+use crate::RENDERER;
 
 static READER: Lazy<StdinReader> = Lazy::new(StdinReader::spawn);
 
@@ -18,14 +19,13 @@ struct BlockData {
 struct Block {
     name: String,
     rx: Receiver<Result<BlockData>>,
-    renderer: Renderer,
 }
 
 impl Block {
-    fn new(name: String, template: String, mut renderer: Renderer) -> Result<Self> {
+    fn new(name: String, template: String) -> Result<Self> {
         let rx = READER.subscribe();
-        renderer.add_template(&name, &template)?;
-        Ok(Self { name, rx, renderer })
+        RENDERER.add_template(&name, &template)?;
+        Ok(Self { name, rx })
     }
 
     async fn wait_for_output(&mut self) -> Result<Option<String>> {
@@ -33,15 +33,15 @@ impl Block {
             Some(data) => data?,
             None => return Ok(None),
         };
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(Some(output))
     }
 }
 
 impl BlockStreamConfig for crate::config::StdinConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(name, template, renderer)?;
+        let block = Block::new(name, template)?;
 
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;

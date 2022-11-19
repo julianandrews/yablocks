@@ -10,24 +10,23 @@ mod util;
 use anyhow::Result;
 
 use crate::config;
-use crate::renderer::Renderer;
 
 type BlockStream = futures::stream::BoxStream<'static, (String, Result<String>)>;
 
 pub trait BlockStreamConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream>;
+    fn to_stream(self, name: String) -> Result<BlockStream>;
 }
 
 impl BlockStreamConfig for config::BlockConfig {
-    fn to_stream(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream(self, name: String) -> Result<BlockStream> {
         match self {
-            config::BlockConfig::Command(config) => config.to_stream(name, renderer),
-            config::BlockConfig::Interval(config) => config.to_stream(name, renderer),
-            config::BlockConfig::Inotify(config) => config.to_stream(name, renderer),
-            config::BlockConfig::Network(config) => config.to_stream(name, renderer),
-            config::BlockConfig::PulseVolume(config) => config.to_stream(name, renderer),
-            config::BlockConfig::Signal(config) => config.to_stream(name, renderer),
-            config::BlockConfig::Stdin(config) => config.to_stream(name, renderer),
+            config::BlockConfig::Command(config) => config.to_stream(name),
+            config::BlockConfig::Interval(config) => config.to_stream(name),
+            config::BlockConfig::Inotify(config) => config.to_stream(name),
+            config::BlockConfig::Network(config) => config.to_stream(name),
+            config::BlockConfig::PulseVolume(config) => config.to_stream(name),
+            config::BlockConfig::Signal(config) => config.to_stream(name),
+            config::BlockConfig::Stdin(config) => config.to_stream(name),
         }
     }
 }

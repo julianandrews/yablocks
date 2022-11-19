@@ -4,7 +4,8 @@ use futures::stream;
 use futures::{FutureExt, SinkExt, StreamExt};
 use notify::Watcher;
 
-use super::{BlockStream, BlockStreamConfig, Renderer};
+use super::{BlockStream, BlockStreamConfig};
+use crate::RENDERER;
 
 static DEBOUNCE_TIME: std::time::Duration = std::time::Duration::from_millis(10);
 
@@ -18,17 +19,11 @@ struct Block {
     name: String,
     file: std::path::PathBuf,
     rx: Receiver<notify::Result<notify::Event>>,
-    renderer: Renderer,
     _watcher: notify::RecommendedWatcher,
 }
 
 impl Block {
-    fn new(
-        name: String,
-        template: String,
-        file: std::path::PathBuf,
-        mut renderer: Renderer,
-    ) -> Result<Self> {
+    fn new(name: String, template: String, file: std::path::PathBuf) -> Result<Self> {
         let (mut tx, rx) = futures::channel::mpsc::channel(1);
         let mut watcher = notify::RecommendedWatcher::new(
             move |res| {
@@ -40,12 +35,11 @@ impl Block {
         )?;
         let watch_dir = file.parent().unwrap_or_else(|| std::path::Path::new("/"));
         watcher.watch(watch_dir, notify::RecursiveMode::NonRecursive)?;
-        renderer.add_template(&name, &template)?;
+        RENDERER.add_template(&name, &template)?;
         Ok(Self {
             name,
             file,
             rx,
-            renderer,
             _watcher: watcher,
         })
     }
@@ -64,7 +58,7 @@ impl Block {
 
     async fn get_output(&mut self) -> Result<String> {
         let data = self.get_data().await?;
-        let output = self.renderer.render(&self.name, data)?;
+        let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
 
@@ -91,9 +85,9 @@ impl Block {
 }
 
 impl BlockStreamConfig for crate::config::InotifyConfig {
-    fn to_stream<'a>(self, name: String, renderer: Renderer) -> Result<BlockStream> {
+    fn to_stream<'a>(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{contents}}".to_string());
-        let mut block = Block::new(name.clone(), template, self.file, renderer)?;
+        let mut block = Block::new(name.clone(), template, self.file)?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {
