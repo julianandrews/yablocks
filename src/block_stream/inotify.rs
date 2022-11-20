@@ -23,7 +23,7 @@ struct Block {
 }
 
 impl Block {
-    fn new(name: String, template: String, file: std::path::PathBuf) -> Result<Self> {
+    fn new(name: String, file: std::path::PathBuf) -> Result<Self> {
         let (mut tx, rx) = futures::channel::mpsc::channel(1);
         let mut watcher = notify::RecommendedWatcher::new(
             move |res| {
@@ -35,7 +35,6 @@ impl Block {
         )?;
         let watch_dir = file.parent().unwrap_or_else(|| std::path::Path::new("/"));
         watcher.watch(watch_dir, notify::RecursiveMode::NonRecursive)?;
-        RENDERER.add_template(&name, &template)?;
         Ok(Self {
             name,
             file,
@@ -44,20 +43,16 @@ impl Block {
         })
     }
 
-    async fn get_data(&self) -> Result<BlockData> {
+    async fn get_output(&mut self) -> Result<String> {
         let contents = match tokio::fs::read_to_string(&self.file).await {
             Ok(contents) => contents,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
             Err(error) => Err(error)?,
         };
-        Ok(BlockData {
+        let data = BlockData {
             file: self.file.to_string_lossy().into_owned(),
             contents,
-        })
-    }
-
-    async fn get_output(&mut self) -> Result<String> {
-        let data = self.get_data().await?;
+        };
         let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
@@ -87,13 +82,16 @@ impl Block {
 impl BlockStreamConfig for crate::config::InotifyConfig {
     fn to_stream<'a>(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{contents}}".to_string());
-        let mut block = Block::new(name.clone(), template, self.file)?;
+        RENDERER.add_template(&name, &template)?;
+
+        let mut block = Block::new(name.clone(), self.file)?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
             Some(((block.name.clone(), result), block))
         });
+
         Ok(Box::pin(first_run.chain(stream)))
     }
 }

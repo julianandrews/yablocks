@@ -30,11 +30,6 @@ struct Block {
 }
 
 impl Block {
-    fn new(name: String, template: String, rx: Receiver<Result<BlockData>>) -> Result<Self> {
-        RENDERER.add_template(&name, &template)?;
-        Ok(Self { name, rx })
-    }
-
     async fn wait_for_output(&mut self) -> Result<Option<String>> {
         let data = match self.rx.next().await {
             Some(data) => data?,
@@ -48,10 +43,12 @@ impl Block {
 impl BlockStreamConfig for crate::config::PulseVolumeConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{volume}}".to_string());
+        RENDERER.add_template(&name, &template)?;
+
         let (tx, rx) = futures::channel::mpsc::channel::<Result<BlockData>>(1);
-        let block = Block::new(name, template, rx)?;
         tokio::task::spawn_blocking(move || monitor_sink(self.sink_name, tx));
 
+        let block = Block { name, rx };
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
             Some(((block.name.clone(), result), block))

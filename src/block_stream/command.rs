@@ -20,8 +20,7 @@ struct Block {
 }
 
 impl Block {
-    fn new(name: String, template: String, command: String, args: Vec<String>) -> Result<Self> {
-        RENDERER.add_template(&name, &template)?;
+    fn new(name: String, command: String, args: Vec<String>) -> Result<Self> {
         let stdout = tokio::process::Command::new(&command)
             .args(&args)
             .stdout(std::process::Stdio::piped())
@@ -37,34 +36,26 @@ impl Block {
         })
     }
 
-    async fn get_data(&mut self) -> Result<Option<BlockData>> {
+    async fn wait_for_output(&mut self) -> Result<Option<String>> {
         let output = match self.lines.next_line().await? {
             Some(output) => output,
             None => return Ok(None),
         };
-        Ok(Some(BlockData {
+        let data = BlockData {
             command: self.command.clone(),
             args: self.args.clone(),
             output,
-        }))
-    }
-
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
-        let data = self.get_data().await?;
-        match data {
-            Some(data) => {
-                let result = RENDERER.render(&self.name, data)?;
-                Ok(Some(result))
-            }
-            None => Ok(None),
-        }
+        };
+        RENDERER.render(&self.name, data).map(Some)
     }
 }
 
 impl BlockStreamConfig for crate::config::CommandConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(name, template, self.command, self.args)?;
+        RENDERER.add_template(&name, &template)?;
+
+        let block = Block::new(name, self.command, self.args)?;
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
             Some(((block.name.clone(), result), block))

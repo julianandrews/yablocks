@@ -21,22 +21,6 @@ struct Block {
 }
 
 impl Block {
-    fn new(
-        name: String,
-        template: String,
-        command: String,
-        args: Vec<String>,
-        interval: u64,
-    ) -> Result<Self> {
-        RENDERER.add_template(&name, &template)?;
-        Ok(Self {
-            name,
-            command,
-            args,
-            interval,
-        })
-    }
-
     async fn get_data(&self) -> Result<BlockData> {
         let process_output = tokio::process::Command::new(&self.command)
             .args(&self.args)
@@ -71,13 +55,14 @@ impl Block {
 impl BlockStreamConfig for crate::config::IntervalConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(
-            name.clone(),
-            template,
-            self.command,
-            self.args,
-            self.interval,
-        )?;
+        RENDERER.add_template(&name, &template)?;
+
+        let block = Block {
+            name: name.clone(),
+            command: self.command,
+            args: self.args,
+            interval: self.interval,
+        };
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |block| async {

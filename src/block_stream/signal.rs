@@ -23,14 +23,7 @@ struct Block {
 }
 
 impl Block {
-    fn new(
-        name: String,
-        template: String,
-        command: String,
-        args: Vec<String>,
-        num: RTSigNum,
-    ) -> Result<Self> {
-        RENDERER.add_template(&name, &template)?;
+    fn new(name: String, command: String, args: Vec<String>, num: RTSigNum) -> Result<Self> {
         let signal = signal(SignalKind::from_raw(num.0))?;
         Ok(Self {
             name,
@@ -41,7 +34,7 @@ impl Block {
         })
     }
 
-    async fn get_data(&self) -> Result<BlockData> {
+    async fn get_output(&self) -> Result<String> {
         let process_output = tokio::process::Command::new(&self.command)
             .args(&self.args)
             .output()
@@ -50,17 +43,13 @@ impl Block {
         let output = String::from_utf8_lossy(&process_output.stdout)
             .trim()
             .to_string();
-        Ok(BlockData {
+        let data = BlockData {
             command: self.command.clone(),
             args: self.args.clone(),
             signal: self.num.0,
             status,
             output,
-        })
-    }
-
-    async fn get_output(&self) -> Result<String> {
-        let data = self.get_data().await?;
+        };
         let output = RENDERER.render(&self.name, data)?;
         Ok(output)
     }
@@ -75,7 +64,9 @@ impl Block {
 impl BlockStreamConfig for crate::config::SignalConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(name.clone(), template, self.command, self.args, self.signal)?;
+        RENDERER.add_template(&name, &template)?;
+
+        let block = Block::new(name.clone(), self.command, self.args, self.signal)?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {

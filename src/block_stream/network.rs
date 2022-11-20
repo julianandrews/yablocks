@@ -32,15 +32,6 @@ struct Block {
 }
 
 impl Block {
-    fn new(name: String, template: String, device: String, messages: Receiver) -> Result<Self> {
-        RENDERER.add_template(&name, &template)?;
-        Ok(Self {
-            name,
-            device,
-            messages,
-        })
-    }
-
     async fn get_initial_output(&self) -> Result<String> {
         let mut path = std::path::PathBuf::from("/sys/class/net");
         path.push(&self.device);
@@ -143,16 +134,20 @@ impl Block {
 impl BlockStreamConfig for crate::config::NetworkConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{operstate}}".to_string());
+        RENDERER.add_template(&name, &template)?;
+
         let (mut conn, mut _handle, messages) = rtnetlink::new_connection()?;
         let addr = SocketAddr::new(0, NL_GRP);
         conn.socket_mut().socket_mut().bind(&addr)?;
         tokio::spawn(conn);
 
-        let block = Block::new(name.clone(), template, self.device, messages)?;
-
+        let block = Block {
+            name: name.clone(),
+            device: self.device,
+            messages,
+        };
         let initial_output = futures::executor::block_on(block.get_initial_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
-
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
             Some(((block.name.clone(), result), block))

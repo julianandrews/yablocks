@@ -22,12 +22,6 @@ struct Block {
 }
 
 impl Block {
-    fn new(name: String, template: String) -> Result<Self> {
-        let rx = READER.subscribe();
-        RENDERER.add_template(&name, &template)?;
-        Ok(Self { name, rx })
-    }
-
     async fn wait_for_output(&mut self) -> Result<Option<String>> {
         let data = match self.rx.next().await {
             Some(data) => data?,
@@ -41,8 +35,10 @@ impl Block {
 impl BlockStreamConfig for crate::config::StdinConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
-        let block = Block::new(name, template)?;
+        RENDERER.add_template(&name, &template)?;
+        let rx = READER.subscribe();
 
+        let block = Block { name, rx };
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await.transpose()?;
             Some(((block.name.clone(), result), block))
