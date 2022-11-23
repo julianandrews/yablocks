@@ -54,10 +54,9 @@ impl Block {
         Ok(output)
     }
 
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
+    async fn wait_for_output(&mut self) -> Option<Result<String>> {
         self.signal.recv().await;
-        let output = self.get_output().await?;
-        Ok(Some(output))
+        Some(self.get_output().await)
     }
 }
 
@@ -70,7 +69,7 @@ impl BlockStreamConfig for crate::config::SignalConfig {
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 

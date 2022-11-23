@@ -22,13 +22,12 @@ struct Block {
 }
 
 impl Block {
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
-        let data = match self.rx.next().await {
-            Some(data) => data?,
-            None => return Ok(None),
+    async fn wait_for_output(&mut self) -> Option<Result<String>> {
+        let data = match self.rx.next().await? {
+            Ok(data) => data,
+            Err(e) => return Some(Err(e)),
         };
-        let output = RENDERER.render(&self.name, data)?;
-        Ok(Some(output))
+        Some(RENDERER.render(&self.name, data))
     }
 }
 
@@ -40,7 +39,7 @@ impl BlockStreamConfig for crate::config::StdinConfig {
 
         let block = Block { name, rx };
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 

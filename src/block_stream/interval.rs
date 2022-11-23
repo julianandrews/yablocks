@@ -45,10 +45,9 @@ impl Block {
         Ok(output)
     }
 
-    async fn wait_for_output(&self) -> Result<Option<String>> {
+    async fn wait_for_output(&self) -> Option<Result<String>> {
         tokio::time::sleep(std::time::Duration::from_secs(self.interval)).await;
-        let output = self.get_output().await?;
-        Ok(Some(output))
+        Some(self.get_output().await)
     }
 }
 
@@ -66,7 +65,7 @@ impl BlockStreamConfig for crate::config::IntervalConfig {
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 

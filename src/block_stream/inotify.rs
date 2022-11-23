@@ -57,21 +57,21 @@ impl Block {
         Ok(output)
     }
 
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
+    async fn wait_for_output(&mut self) -> Option<Result<String>> {
         loop {
-            let mut results = match self.rx.next().await {
-                Some(result) => vec![result],
-                None => return Ok(None),
-            };
+            let mut results = vec![self.rx.next().await?];
             tokio::time::sleep(DEBOUNCE_TIME).await;
             while let Some(result) = self.rx.next().now_or_never().flatten() {
                 results.push(result);
             }
             for result in results {
-                let event = result?;
+                let event = match result {
+                    Ok(event) => event,
+                    Err(e) => return Some(Err(anyhow::Error::from(e))),
+                };
                 for path in event.paths {
                     if path == self.file {
-                        return self.get_output().await.map(Some);
+                        return Some(self.get_output().await);
                     }
                 }
             }
@@ -88,7 +88,7 @@ impl BlockStreamConfig for crate::config::InotifyConfig {
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 

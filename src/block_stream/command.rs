@@ -36,17 +36,17 @@ impl Block {
         })
     }
 
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
-        let output = match self.lines.next_line().await? {
-            Some(output) => output,
-            None => return Ok(None),
+    async fn wait_for_output(&mut self) -> Option<Result<String>> {
+        let output = match self.lines.next_line().await.transpose()? {
+            Ok(output) => output,
+            Err(e) => return Some(Err(anyhow::Error::from(e))),
         };
         let data = BlockData {
             command: self.command.clone(),
             args: self.args.clone(),
             output,
         };
-        RENDERER.render(&self.name, data).map(Some)
+        Some(RENDERER.render(&self.name, data))
     }
 }
 
@@ -57,7 +57,7 @@ impl BlockStreamConfig for crate::config::CommandConfig {
 
         let block = Block::new(name, self.command, self.args)?;
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 

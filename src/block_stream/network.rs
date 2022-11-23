@@ -115,18 +115,13 @@ impl Block {
         None
     }
 
-    async fn wait_for_output(&mut self) -> Result<Option<String>> {
+    async fn wait_for_output(&mut self) -> Option<Result<String>> {
         loop {
-            match self.messages.next().await {
-                Some((message, _)) => {
-                    if let Some(operstate) = self.parse_message(message) {
-                        let data = self.build_block_data(operstate);
-                        let output = RENDERER.render(&self.name, data)?;
-                        return Ok(Some(output));
-                    }
-                }
-                None => return Ok(None),
-            };
+            let (message, _) = self.messages.next().await?;
+            if let Some(operstate) = self.parse_message(message) {
+                let data = self.build_block_data(operstate);
+                return Some(RENDERER.render(&self.name, data));
+            }
         }
     }
 }
@@ -149,7 +144,7 @@ impl BlockStreamConfig for crate::config::NetworkConfig {
         let initial_output = futures::executor::block_on(block.get_initial_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {
-            let result = block.wait_for_output().await.transpose()?;
+            let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
         });
 
