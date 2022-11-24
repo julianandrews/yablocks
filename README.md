@@ -119,6 +119,29 @@ Run a command and show output for each line.
 | args     | list(string) | list of arguments provided            |
 | output   | string       | last line of command output           |
 
+### cpu
+
+Monitor CPU usage.
+
+The `cpu_times` map in the outputs includes `user`, `nice`, `system`, `idle`,
+`iowait`, `irq`, `softirq`, `steal`, `guest`, `guest_nice`, and for convenience
+`non_idle` which is the sum of everything except idle and iowait times, and is
+probably what you actually want.
+
+#### Inputs
+
+| name     | type   | description                                                                       |
+| -------- | ------ | --------------------------------------------------------------------------------- |
+| template | string | template string (optional, default `{{cpu_times.non_idle | round(precision=1)}}`) |
+| interval | number | how often to poll for CPU usage in seconds                                        |
+
+#### Outputs
+
+| name      | type        | description                     |
+| --------- | ----------- | ------------------------------- |
+| interval  | number      | interval provided               |
+| cpu_times | map(number) | Map of CPU times as percentages |
+
 ### interval
 
 Run a command periodically and show output.

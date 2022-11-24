@@ -1,4 +1,5 @@
 mod command;
+mod cpu;
 mod inotify;
 mod interval;
 mod network;
@@ -21,6 +22,7 @@ impl BlockStreamConfig for config::BlockConfig {
     fn to_stream(self, name: String) -> Result<BlockStream> {
         match self {
             config::BlockConfig::Command(config) => config.to_stream(name),
+            config::BlockConfig::Cpu(config) => config.to_stream(name),
             config::BlockConfig::Interval(config) => config.to_stream(name),
             config::BlockConfig::Inotify(config) => config.to_stream(name),
             config::BlockConfig::Network(config) => config.to_stream(name),

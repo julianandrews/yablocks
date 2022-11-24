@@ -27,6 +27,7 @@ pub struct Config {
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum BlockConfig {
     Command(CommandConfig),
+    Cpu(CpuConfig),
     Interval(IntervalConfig),
     Inotify(InotifyConfig),
     Network(NetworkConfig),
@@ -133,4 +134,14 @@ impl TryFrom<i32> for RTSigNum {
 #[serde(rename_all = "kebab-case")]
 pub struct StdinConfig {
     pub template: Option<String>,
+}
+
+/// Template Values:
+///   - interval
+///   - cpu_times
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct CpuConfig {
+    pub template: Option<String>,
+    pub interval: u64,
 }
