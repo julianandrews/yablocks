@@ -1,14 +1,15 @@
 use anyhow::Result;
 use futures::{stream, StreamExt};
+use tokio::process::Command;
 use tokio::signal::unix::{signal, Signal, SignalKind};
 
 use super::{BlockStream, BlockStreamConfig};
 use crate::{config::RTSigNum, RENDERER};
 
 #[derive(serde::Serialize, Debug, Clone)]
-struct BlockData {
-    command: String,
-    args: Vec<String>,
+struct BlockData<'a> {
+    command: &'a str,
+    args: &'a Vec<String>,
     signal: i32,
     status: i32,
     output: serde_json::Value,
@@ -42,31 +43,9 @@ impl Block {
         })
     }
 
-    async fn get_output(&self) -> Result<String> {
-        let process_output = tokio::process::Command::new(&self.command)
-            .args(&self.args)
-            .output()
-            .await?;
-        let status = process_output.status.code().unwrap_or(0);
-        let output = if self.json {
-            serde_json::from_slice(&process_output.stdout)?
-        } else {
-            serde_json::json!(String::from_utf8_lossy(&process_output.stdout).trim())
-        };
-        let data = BlockData {
-            command: self.command.clone(),
-            args: self.args.clone(),
-            signal: self.num.0,
-            status,
-            output,
-        };
-        let output = RENDERER.render(&self.name, data)?;
-        Ok(output)
-    }
-
     async fn wait_for_output(&mut self) -> Option<Result<String>> {
         self.signal.recv().await;
-        Some(self.get_output().await)
+        Some(render_output(&self.name, &self.command, &self.args, self.num.0, self.json).await)
     }
 }
 
@@ -77,13 +56,16 @@ impl BlockStreamConfig for crate::config::SignalConfig {
 
         let block = Block::new(
             name.clone(),
-            self.command,
-            self.args,
+            self.command.clone(),
+            self.args.clone(),
             self.signal,
             self.json,
         )?;
-        let initial_output = futures::executor::block_on(block.get_output())?;
-        let first_run = stream::once(async { (name, Ok(initial_output)) });
+        let first_run = stream::once(async move {
+            let output =
+                render_output(&name, &self.command, &self.args, self.signal.0, self.json).await;
+            (name, output)
+        });
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
@@ -91,4 +73,28 @@ impl BlockStreamConfig for crate::config::SignalConfig {
 
         Ok(Box::pin(first_run.chain(stream)))
     }
+}
+
+async fn render_output(
+    name: &str,
+    command: &str,
+    args: &Vec<String>,
+    signal: i32,
+    json: bool,
+) -> Result<String> {
+    let process_output = Command::new(command).args(args).output().await?;
+    let status = process_output.status.code().unwrap_or(0);
+    let output = if json {
+        serde_json::from_slice(&process_output.stdout)?
+    } else {
+        serde_json::json!(String::from_utf8_lossy(&process_output.stdout).trim())
+    };
+    let data = BlockData {
+        command,
+        args,
+        signal,
+        status,
+        output,
+    };
+    RENDERER.render(name, data)
 }
