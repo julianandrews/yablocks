@@ -13,18 +13,29 @@ static READER: Lazy<StdinReader> = Lazy::new(StdinReader::spawn);
 
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
-    output: String,
+    output: serde_json::Value,
 }
 
 struct Block {
     name: String,
-    rx: Receiver<Result<BlockData>>,
+    rx: Receiver<Result<String>>,
+    json: bool,
 }
 
 impl Block {
     async fn wait_for_output(&mut self) -> Option<Result<String>> {
         let data = match self.rx.next().await? {
-            Ok(data) => data,
+            Ok(s) => {
+                let output = if self.json {
+                    match serde_json::from_str(&s) {
+                        Ok(json) => json,
+                        Err(e) => return Some(Err(anyhow::Error::from(e))),
+                    }
+                } else {
+                    serde_json::json!(s)
+                };
+                BlockData { output }
+            }
             Err(e) => return Some(Err(e)),
         };
         Some(RENDERER.render(&self.name, data))
@@ -36,8 +47,9 @@ impl BlockStreamConfig for crate::config::StdinConfig {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
         RENDERER.add_template(&name, &template)?;
         let rx = READER.subscribe();
+        let json = self.json;
 
-        let block = Block { name, rx };
+        let block = Block { name, rx, json };
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
@@ -48,7 +60,7 @@ impl BlockStreamConfig for crate::config::StdinConfig {
 }
 
 struct StdinReader {
-    senders: Arc<Mutex<Vec<Sender<Result<BlockData>>>>>,
+    senders: Arc<Mutex<Vec<Sender<Result<String>>>>>,
 }
 
 impl StdinReader {
@@ -60,9 +72,7 @@ impl StdinReader {
             while let Some(result) = lines.next_line().await.transpose() {
                 for tx in &mut *senders_clone.lock().unwrap() {
                     let result = match &result {
-                        Ok(s) => Ok(BlockData {
-                            output: s.to_string(),
-                        }),
+                        Ok(s) => Ok(s.to_string()),
                         Err(e) => Err(anyhow::anyhow!("Failed to read from stdin: {}", e.kind())),
                     };
                     send_or_eprint(result, tx);
@@ -72,8 +82,8 @@ impl StdinReader {
         Self { senders }
     }
 
-    fn subscribe(&self) -> Receiver<Result<BlockData>> {
-        let (tx, rx) = futures::channel::mpsc::channel::<Result<BlockData>>(1);
+    fn subscribe(&self) -> Receiver<Result<String>> {
+        let (tx, rx) = futures::channel::mpsc::channel::<Result<String>>(1);
         self.senders.lock().unwrap().push(tx);
         rx
     }

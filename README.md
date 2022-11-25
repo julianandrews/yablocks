@@ -26,6 +26,11 @@ exact text and markup you want for for any status bar. This also means that you
 often won't need to write and run wrapper scripts around a binary just to do
 the formatting.
 
+Where possible yablocks provides structured data to your templates rather than
+raw text. All the built-in blocks will provide a mapping of relevant values,
+and where possible yablocks supports parsing JSON inputs to provide the
+specific data you need.
+
 yablocks also goes out of its way to support event based inputs like inotify
 based file watchers, signal watchers, and command readers.
 
@@ -103,21 +108,25 @@ can be referenced in the block's template.
 
 Run a command and show output for each line.
 
+If `json` is set to `true`, the each line will be parsed as JSON and all JSON
+fields will be accessible from the `contents` value in the outputs.
+
 #### Inputs
 
-| name     | type         | description                                      |
-| -------- | ------------ | ------------------------------------------------ |
-| template | string       | template string (optional, default `{{output}}`) |
-| command  | string       | command to run                                   |
-| args     | list(string) | list of arguments to the command                 |
+| name     | type         | description                                                    |
+| -------- | ------------ | -------------------------------------------------------------- |
+| template | string       | template string (optional, default `{{output}}`)               |
+| command  | string       | command to run                                                 |
+| args     | list(string) | list of arguments to the command                               |
+| json     | boolean      | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
-| name     | type         | description                           |
-| -------- | ------------ | ------------------------------------- |
-| command  | string       | command provided                      |
-| args     | list(string) | list of arguments provided            |
-| output   | string       | last line of command output           |
+| name     | type           | description                 |
+| -------- | -------------- | --------------------------- |
+| command  | string         | command provided            |
+| args     | list(string)   | list of arguments provided  |
+| output   | string or json | last line of command output |
 
 ### cpu
 
@@ -146,47 +155,55 @@ probably what you actually want.
 
 Run a command periodically and show output.
 
+If `json` is set to `true`, the output of command will be parsed as JSON and
+all JSON fields will be accessible from the `output` value in the outputs.
+
 #### Inputs
 
-| name     | type          | description                                      |
-| -------- | ------------- | ------------------------------------------------ |
-| template | string        | template string (optional, default `{{output}}`) |
-| command  | string        | command to run                                   |
-| args     | array(string) | list of arguments to the command                 |
-| interval | number        | how often to run the command in seconds          |
+| name     | type          | description                                                    |
+| -------- | ------------- | -------------------------------------------------------------- |
+| template | string        | template string (optional, default `{{output}}`)               |
+| command  | string        | command to run                                                 |
+| args     | array(string) | list of arguments to the command                               |
+| interval | number        | how often to run the command in seconds                        |
+| json     | boolean       | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
-| name     | type          | description                           |
-| -------- | ------------- | ------------------------------------- |
-| command  | string        | command provided                      |
-| args     | array(string) | list of arguments provided            |
-| interval | number        | interval provided                     |
-| output   | string        | output of the last command invocation |
+| name     | type           | description                           |
+| -------- | -------------- | ------------------------------------- |
+| command  | string         | command provided                      |
+| args     | array(string)  | list of arguments provided            |
+| interval | number         | interval provided                     |
+| output   | string or json | output of the last command invocation |
 
 ### inotify
 
 Watch a file for changes and show content.
 
-#### Inputs
-
-| name     | type   | description                                        |
-| -------- | ------ | -------------------------------------------------- |
-| template | string | template string (optional, default `{{contents}}`) |
-| file     | string | file to monitor                                    |
-
-#### Outputs
-
-| name     | type   | description          |
-| -------- | ------ | -------------------- |
-| file     | string | file to monitor      |
-| contents | string | contents of the file |
+If `json` is set to `true`, the contents of the file will be parsed as JSON and
+all JSON fields will be accessible from the `contents` value in the outputs.
 
 Note: inotify is based on inodes. The inotify block will monitor the directory
 containing the configured file so that if the file is deleted and recreated the
 block will continue to function, but if the directory itself is deleted the
 inode being watched will be gone, and changes won't be detected until the
 directory is recreated and yablocks is restarted.
+
+#### Inputs
+
+| name     | type    | description                                                    |
+| -------- | ------- | -------------------------------------------------------------- |
+| template | string  | template string (optional, default `{{contents}}`)             |
+| file     | string  | file to monitor                                                |
+| json     | boolean | whether to interpret input as JSON (optional, default `false`) |
+
+#### Outputs
+
+| name     | type           | description          |
+| -------- | -------------- | -------------------- |
+| file     | string         | file to monitor      |
+| contents | string or json | contents of the file |
 
 ### network
 
@@ -233,39 +250,47 @@ Monitor a pulse audio sink.
 Run a command whenever yablocks receives a signal. Signal number should be
 between SIGRTMIN and SIGRTMAX (usually 34-64 inclusive for Linux).
 
+If `json` is set to `true`, the output of command will be parsed as JSON and
+all JSON fields will be accessible from the `output` value in the outputs.
+
 #### Inputs
 
-| name     | type          | description                                      |
-| -------- | ------------- | -------------------------------------------------|
-| template | string        | template string (optional, default `{{output}}`) |
-| command  | string        | command to run                                   |
-| args     | array(string) | list of arguments to the command                 |
-| signal   | number        | RT signal to watch for                           |
+| name     | type          | description                                                    |
+| -------- | ------------- | -------------------------------------------------------------- |
+| template | string        | template string (optional, default `{{output}}`)               |
+| command  | string        | command to run                                                 |
+| args     | array(string) | list of arguments to the command                               |
+| signal   | number        | RT signal to watch for                                         |
+| json     | boolean       | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
-| name     | type          | description                           |
-| -------- | ------------- | --------------------------------------|
-| command  | string        | command provided                      |
-| args     | array(string) | list of arguments provided            |
-| signal   | number        | RT signal provided                    |
-| output   | string        | output of the last command invocation |
+| name     | type           | description                           |
+| -------- | -------------- | --------------------------------------|
+| command  | string         | command provided                      |
+| args     | array(string)  | list of arguments provided            |
+| signal   | number         | RT signal provided                    |
+| output   | string or json | output of the last command invocation |
 
 ### stdin
 
 Read from stdin and show output for each line.
 
+If `json` is set to `true`, the output from stdin will be parsed as JSON and
+all JSON fields will be accessible from the `output` value in the outputs.
+
 #### Inputs
 
-| name     | type   | description                                      |
-| -------- | ------ | ------------------------------------------------ |
-| template | string | template string (optional, default `{{output}}`) |
+| name     | type    | description                                                    |
+| -------- | ------- | -------------------------------------------------------------- |
+| template | string  | template string (optional, default `{{output}}`)               |
+| json     | boolean | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
-| name     | type   | description                 |
-| -------- | ------ | --------------------------- |
-| output   | string | last line of command output |
+| name     | type           | description                 |
+| -------- | -------------- | --------------------------- |
+| output   | string or json | last line of command output |
 
 
 ## Contributing

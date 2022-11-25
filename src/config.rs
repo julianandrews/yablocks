@@ -46,6 +46,8 @@ pub struct CommandConfig {
     pub template: Option<String>,
     pub command: String,
     pub args: Vec<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 
 /// Template Values:
@@ -60,6 +62,8 @@ pub struct IntervalConfig {
     pub command: String,
     pub args: Vec<String>,
     pub interval: u64,
+    #[serde(default)]
+    pub json: bool,
 }
 
 /// Template Values:
@@ -70,6 +74,8 @@ pub struct IntervalConfig {
 pub struct InotifyConfig {
     pub template: Option<String>,
     pub file: std::path::PathBuf,
+    #[serde(default)]
+    pub json: bool,
 }
 
 /// Template Values:
@@ -108,6 +114,8 @@ pub struct SignalConfig {
     pub command: String,
     pub args: Vec<String>,
     pub signal: RTSigNum,
+    #[serde(default)]
+    pub json: bool,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, Copy)]
@@ -134,6 +142,8 @@ impl TryFrom<i32> for RTSigNum {
 #[serde(rename_all = "kebab-case")]
 pub struct StdinConfig {
     pub template: Option<String>,
+    #[serde(default)]
+    pub json: bool,
 }
 
 /// Template Values:

@@ -9,7 +9,7 @@ use crate::RENDERER;
 struct BlockData {
     command: String,
     args: Vec<String>,
-    output: String,
+    output: serde_json::Value,
 }
 
 struct Block {
@@ -17,10 +17,11 @@ struct Block {
     command: String,
     args: Vec<String>,
     lines: tokio::io::Lines<tokio::io::BufReader<tokio::process::ChildStdout>>,
+    json: bool,
 }
 
 impl Block {
-    fn new(name: String, command: String, args: Vec<String>) -> Result<Self> {
+    fn new(name: String, command: String, args: Vec<String>, json: bool) -> Result<Self> {
         let stdout = tokio::process::Command::new(&command)
             .args(&args)
             .stdout(std::process::Stdio::piped())
@@ -33,6 +34,7 @@ impl Block {
             command,
             args,
             lines,
+            json,
         })
     }
 
@@ -40,6 +42,14 @@ impl Block {
         let output = match self.lines.next_line().await.transpose()? {
             Ok(output) => output,
             Err(e) => return Some(Err(anyhow::Error::from(e))),
+        };
+        let output = if self.json {
+            match serde_json::from_str(&output) {
+                Ok(value) => value,
+                Err(e) => return Some(Err(anyhow::Error::from(e))),
+            }
+        } else {
+            serde_json::json!(output)
         };
         let data = BlockData {
             command: self.command.clone(),
@@ -55,7 +65,7 @@ impl BlockStreamConfig for crate::config::CommandConfig {
         let template = self.template.unwrap_or_else(|| "{{output}}".to_string());
         RENDERER.add_template(&name, &template)?;
 
-        let block = Block::new(name, self.command, self.args)?;
+        let block = Block::new(name, self.command, self.args, self.json)?;
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))

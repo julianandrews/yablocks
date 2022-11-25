@@ -1,4 +1,4 @@
-template = "{{date}}{{local_mail}} | Mem: {{memory}} | Vol: {{volume}} | {{wifi}}"
+template = "{{date}}{{local_mail}} | {{weather}} | CPU: {{cpu}} | Mem: {{memory}} | Vol: {{volume}} | {{wifi}}"
 
 [ blocks.date ]
 kind = "interval"
@@ -10,6 +10,43 @@ interval = 60
 kind = "inotify"
 file = "/var/mail/username"
 template = "{% if contents %} | %{F#FF0}!%{F-}{% endif %}"
+
+[ blocks.weather ]
+kind = "interval"
+command = "curl"
+args = [
+    "-s",
+    "https://forecast.weather.gov/MapClick.php?FcstType=json&lat=47.8608&lon=-123.9370"
+    ]
+interval = 1800
+json = true
+template = """\
+{%- set weather = output.currentobservation.Weather -%}
+{%- if weather != "NA" -%}{{weather}} {%- endif -%}
+{%- set temp = output.currentobservation.Temp | int -%}
+{%- if temp < 55 -%}
+    %{F#00F}
+{%- elif temp > 80 -%}
+    %{F#F00}
+{%- else -%}
+    %{F#FFF}
+{%- endif -%}
+{{temp}}°%{F-}\
+"""
+
+[ blocks.cpu ]
+kind = "cpu"
+template = """
+{%- if cpu_times.non_idle < 20 -%}
+    %{F#FFF}
+{%- elif cpu_times.non_idle > 50 -%}
+    %{F#F00}
+{%- else -%}
+    %{F#00F}
+{%- endif -%}
+{{cpu_times.non_idle | round(precision=1)}}%%%{F-}\
+"""
+interval = 5
 
 [ blocks.memory ]
 kind = "interval"

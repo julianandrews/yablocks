@@ -12,18 +12,19 @@ static DEBOUNCE_TIME: std::time::Duration = std::time::Duration::from_millis(10)
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
     file: String,
-    contents: String,
+    contents: serde_json::Value,
 }
 
 struct Block {
     name: String,
     file: std::path::PathBuf,
     rx: Receiver<notify::Result<notify::Event>>,
+    json: bool,
     _watcher: notify::RecommendedWatcher,
 }
 
 impl Block {
-    fn new(name: String, file: std::path::PathBuf) -> Result<Self> {
+    fn new(name: String, file: std::path::PathBuf, json: bool) -> Result<Self> {
         let (mut tx, rx) = futures::channel::mpsc::channel(1);
         let mut watcher = notify::RecommendedWatcher::new(
             move |res| {
@@ -39,6 +40,7 @@ impl Block {
             name,
             file,
             rx,
+            json,
             _watcher: watcher,
         })
     }
@@ -48,6 +50,11 @@ impl Block {
             Ok(contents) => contents,
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
             Err(error) => Err(error)?,
+        };
+        let contents = if self.json {
+            serde_json::from_str(&contents)?
+        } else {
+            serde_json::json!(contents)
         };
         let data = BlockData {
             file: self.file.to_string_lossy().into_owned(),
@@ -84,7 +91,7 @@ impl BlockStreamConfig for crate::config::InotifyConfig {
         let template = self.template.unwrap_or_else(|| "{{contents}}".to_string());
         RENDERER.add_template(&name, &template)?;
 
-        let mut block = Block::new(name.clone(), self.file)?;
+        let mut block = Block::new(name.clone(), self.file, self.json)?;
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
         let stream = stream::unfold(block, move |mut block| async {

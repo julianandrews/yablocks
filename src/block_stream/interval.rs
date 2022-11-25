@@ -10,7 +10,7 @@ struct BlockData {
     args: Vec<String>,
     interval: u64,
     status: i32,
-    output: String,
+    output: serde_json::Value,
 }
 
 struct Block {
@@ -18,6 +18,7 @@ struct Block {
     command: String,
     args: Vec<String>,
     interval: u64,
+    json: bool,
 }
 
 impl Block {
@@ -27,9 +28,11 @@ impl Block {
             .output()
             .await?;
         let status = process_output.status.code().unwrap_or(0);
-        let output = String::from_utf8_lossy(&process_output.stdout)
-            .trim()
-            .to_string();
+        let output = if self.json {
+            serde_json::from_slice(&process_output.stdout)?
+        } else {
+            serde_json::json!(String::from_utf8_lossy(&process_output.stdout).trim())
+        };
         Ok(BlockData {
             command: self.command.clone(),
             args: self.args.clone(),
@@ -61,6 +64,7 @@ impl BlockStreamConfig for crate::config::IntervalConfig {
             command: self.command,
             args: self.args,
             interval: self.interval,
+            json: self.json,
         };
         let initial_output = futures::executor::block_on(block.get_output())?;
         let first_run = stream::once(async { (name, Ok(initial_output)) });
