@@ -109,7 +109,7 @@ can be referenced in the block's template.
 Run a command and show output for each line.
 
 If `json` is set to `true`, the each line will be parsed as JSON and all JSON
-fields will be accessible from the `contents` value in the outputs.
+fields will be accessible from the `output` value in the outputs.
 
 #### Inputs
 
