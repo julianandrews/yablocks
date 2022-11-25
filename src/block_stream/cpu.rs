@@ -35,8 +35,6 @@ impl Block {
                     Ok(stats) => Some(stats.total),
                     Err(e) => return Some(Err(anyhow::Error::from(e))),
                 };
-                // Wait another interval so that we get a good sample of CPU usage data
-                tokio::time::sleep(std::time::Duration::from_secs(self.interval)).await;
                 self.cpu_time.as_ref().unwrap()
             }
         };
