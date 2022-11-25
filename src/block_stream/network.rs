@@ -16,15 +16,6 @@ static NL_GRP: u32 =
 type Receiver =
     futures::channel::mpsc::UnboundedReceiver<(NetlinkMessage<RtnlMessage>, SocketAddr)>;
 
-#[derive(serde::Serialize, Debug, Clone)]
-struct BlockData {
-    device: String,
-    operstate: String,
-    wireless: bool,
-    essid: Option<String>,
-    quality: Option<u8>,
-}
-
 struct Block {
     name: String,
     device: String,
@@ -32,56 +23,6 @@ struct Block {
 }
 
 impl Block {
-    async fn get_initial_output(&self) -> Result<String> {
-        let mut path = std::path::PathBuf::from("/sys/class/net");
-        path.push(&self.device);
-        path.push("operstate");
-        let operstate = tokio::fs::read_to_string(path).await?.trim().to_string();
-        let data = self.build_block_data(operstate);
-        let output = RENDERER.render(&self.name, data)?;
-        Ok(output)
-    }
-
-    fn build_block_data(&self, operstate: String) -> BlockData {
-        match self.build_block_data_with_wifi(&operstate) {
-            Ok(Some(data)) => data,
-            _ => BlockData {
-                device: self.device.clone(),
-                operstate,
-                wireless: false,
-                essid: None,
-                quality: None,
-            },
-        }
-    }
-
-    fn build_block_data_with_wifi(&self, operstate: &str) -> Result<Option<BlockData>> {
-        let interfaces = nl80211::Socket::connect()?.get_interfaces_info()?;
-        for interface in interfaces {
-            if let Some(data) = &interface.name {
-                let device = String::from_utf8_lossy(data)
-                    .trim_end_matches(char::from(0))
-                    .to_owned()
-                    .to_string();
-                if device == self.device {
-                    let essid = interface.ssid.as_ref().map(nl80211::parse_string);
-                    let station = interface.get_station_info()?;
-                    let signal_strength = station.average_signal.as_ref().map(nl80211::parse_i8);
-                    let quality =
-                        signal_strength.map(|dbm| 2 * (dbm.max(-100).min(-50) + 100) as u8);
-                    return Ok(Some(BlockData {
-                        device,
-                        operstate: operstate.to_string(),
-                        wireless: true,
-                        essid,
-                        quality,
-                    }));
-                }
-            }
-        }
-        Ok(None)
-    }
-
     fn parse_message(&self, message: NetlinkMessage<RtnlMessage>) -> Option<String> {
         if let NetlinkPayload::InnerMessage(message) = message.payload {
             match message {
@@ -119,7 +60,7 @@ impl Block {
         loop {
             let (message, _) = self.messages.next().await?;
             if let Some(operstate) = self.parse_message(message) {
-                let data = self.build_block_data(operstate);
+                let data = BlockData::read(self.device.clone(), operstate);
                 return Some(RENDERER.render(&self.name, data));
             }
         }
@@ -138,11 +79,13 @@ impl BlockStreamConfig for crate::config::NetworkConfig {
 
         let block = Block {
             name: name.clone(),
-            device: self.device,
+            device: self.device.clone(),
             messages,
         };
-        let initial_output = futures::executor::block_on(block.get_initial_output())?;
-        let first_run = stream::once(async { (name, Ok(initial_output)) });
+        let first_run = stream::once(async move {
+            let result = render_device_state(&name, self.device).await;
+            (name, result)
+        });
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
@@ -150,4 +93,59 @@ impl BlockStreamConfig for crate::config::NetworkConfig {
 
         Ok(Box::pin(first_run.chain(stream)))
     }
+}
+
+#[derive(serde::Serialize, Debug, Clone)]
+struct BlockData {
+    device: String,
+    operstate: String,
+    wireless: bool,
+    essid: Option<String>,
+    quality: Option<u8>,
+}
+
+impl BlockData {
+    fn read(device: String, operstate: String) -> Self {
+        match BlockData::get_wireless_info(&device) {
+            Ok(Some((essid, quality))) => BlockData {
+                device,
+                operstate,
+                wireless: true,
+                essid,
+                quality,
+            },
+            _ => BlockData {
+                device,
+                operstate,
+                wireless: false,
+                essid: None,
+                quality: None,
+            },
+        }
+    }
+
+    fn get_wireless_info(device: &str) -> Result<Option<(Option<String>, Option<u8>)>> {
+        let interfaces = nl80211::Socket::connect()?.get_interfaces_info()?;
+        for interface in interfaces {
+            if let Some(bytes) = &interface.name {
+                let found_device = String::from_utf8_lossy(bytes);
+                if found_device.trim_end_matches(char::from(0)) == device {
+                    let essid = interface.ssid.as_ref().map(nl80211::parse_string);
+                    let station = interface.get_station_info()?;
+                    let signal_strength = station.average_signal.as_ref().map(nl80211::parse_i8);
+                    let quality =
+                        signal_strength.map(|dbm| 2 * (dbm.max(-100).min(-50) + 100) as u8);
+                    return Ok(Some((essid, quality)));
+                }
+            }
+        }
+        Ok(None)
+    }
+}
+
+async fn render_device_state(name: &str, device: String) -> Result<String> {
+    let path: std::path::PathBuf = ["/sys/class/net", &device, "operstate"].iter().collect();
+    let operstate = tokio::fs::read_to_string(path).await?.trim().to_string();
+    let data = BlockData::read(device, operstate);
+    RENDERER.render(name, data)
 }
