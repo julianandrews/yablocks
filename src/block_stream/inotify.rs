@@ -101,5 +101,5 @@ async fn render_file(name: &str, file: &std::path::Path, json: bool) -> Result<S
         file: file.to_string_lossy().into_owned(),
         contents,
     };
-    RENDERER.render(&name, data)
+    RENDERER.render(name, data)
 }
