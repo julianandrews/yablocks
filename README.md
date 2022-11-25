@@ -77,7 +77,7 @@ If launching xmobar from XMonad you can instead use yablocks with `CommandReader
 ## Configuration
 
 You'll need to write a [toml](https://toml.io/en/) config file. yablocks will
-look for in in your XDG config directory (by default
+look for it in your XDG config directory (by default
 `~/.config/yablocks/config.toml`), or you can specify the config file path on
 the command line.
 
@@ -117,7 +117,7 @@ fields will be accessible from the `output` value in the outputs.
 | -------- | ------------ | -------------------------------------------------------------- |
 | template | string       | template string (optional, default `{{output}}`)               |
 | command  | string       | command to run                                                 |
-| args     | list(string) | list of arguments to the command                               |
+| args     | list(string) | list of arguments to the command (optional, default `[]`)      |
 | json     | boolean      | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
@@ -139,10 +139,10 @@ probably what you actually want.
 
 #### Inputs
 
-| name     | type   | description                                                                       |
-| -------- | ------ | --------------------------------------------------------------------------------- |
-| template | string | template string (optional, default `{{cpu_times.non_idle | round(precision=1)}}`) |
-| interval | number | how often to poll for CPU usage in seconds                                        |
+| name     | type   | description                                                                        |
+| -------- | ------ | ---------------------------------------------------------------------------------- |
+| template | string | template string (optional, default `{{cpu_times.non_idle \| round(precision=1)}}`) |
+| interval | number | how often to poll for CPU usage in seconds                                         |
 
 #### Outputs
 
@@ -160,20 +160,20 @@ all JSON fields will be accessible from the `output` value in the outputs.
 
 #### Inputs
 
-| name     | type          | description                                                    |
-| -------- | ------------- | -------------------------------------------------------------- |
-| template | string        | template string (optional, default `{{output}}`)               |
-| command  | string        | command to run                                                 |
-| args     | array(string) | list of arguments to the command                               |
-| interval | number        | how often to run the command in seconds                        |
-| json     | boolean       | whether to interpret input as JSON (optional, default `false`) |
+| name     | type         | description                                                    |
+| -------- | ------------ | -------------------------------------------------------------- |
+| template | string       | template string (optional, default `{{output}}`)               |
+| command  | string       | command to run                                                 |
+| args     | list(string) | list of arguments to the command (optional, default `[]`)      |
+| interval | number       | how often to run the command in seconds                        |
+| json     | boolean      | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
 | name     | type           | description                           |
 | -------- | -------------- | ------------------------------------- |
 | command  | string         | command provided                      |
-| args     | array(string)  | list of arguments provided            |
+| args     | list(string)   | list of arguments provided            |
 | interval | number         | interval provided                     |
 | output   | string or json | output of the last command invocation |
 
@@ -255,20 +255,20 @@ all JSON fields will be accessible from the `output` value in the outputs.
 
 #### Inputs
 
-| name     | type          | description                                                    |
-| -------- | ------------- | -------------------------------------------------------------- |
-| template | string        | template string (optional, default `{{output}}`)               |
-| command  | string        | command to run                                                 |
-| args     | array(string) | list of arguments to the command                               |
-| signal   | number        | RT signal to watch for                                         |
-| json     | boolean       | whether to interpret input as JSON (optional, default `false`) |
+| name     | type         | description                                                    |
+| -------- | ------------ | -------------------------------------------------------------- |
+| template | string       | template string (optional, default `{{output}}`)               |
+| command  | string       | command to run                                                 |
+| args     | list(string) | list of arguments to the command (optional, default `[]`)      |
+| signal   | number       | RT signal to watch for                                         |
+| json     | boolean      | whether to interpret input as JSON (optional, default `false`) |
 
 #### Outputs
 
 | name     | type           | description                           |
 | -------- | -------------- | --------------------------------------|
 | command  | string         | command provided                      |
-| args     | array(string)  | list of arguments provided            |
+| args     | list(string)   | list of arguments provided            |
 | signal   | number         | RT signal provided                    |
 | output   | string or json | output of the last command invocation |
 

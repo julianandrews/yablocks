@@ -45,6 +45,7 @@ pub enum BlockConfig {
 pub struct CommandConfig {
     pub template: Option<String>,
     pub command: String,
+    #[serde(default)]
     pub args: Vec<String>,
     #[serde(default)]
     pub json: bool,
@@ -60,6 +61,7 @@ pub struct CommandConfig {
 pub struct IntervalConfig {
     pub template: Option<String>,
     pub command: String,
+    #[serde(default)]
     pub args: Vec<String>,
     pub interval: u64,
     #[serde(default)]
@@ -112,6 +114,7 @@ pub struct PulseVolumeConfig {
 pub struct SignalConfig {
     pub template: Option<String>,
     pub command: String,
+    #[serde(default)]
     pub args: Vec<String>,
     pub signal: RTSigNum,
     #[serde(default)]
