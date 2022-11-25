@@ -45,25 +45,6 @@ impl Block {
         })
     }
 
-    async fn get_output(&mut self) -> Result<String> {
-        let contents = match tokio::fs::read_to_string(&self.file).await {
-            Ok(contents) => contents,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
-            Err(error) => Err(error)?,
-        };
-        let contents = if self.json {
-            serde_json::from_str(&contents)?
-        } else {
-            serde_json::json!(contents)
-        };
-        let data = BlockData {
-            file: self.file.to_string_lossy().into_owned(),
-            contents,
-        };
-        let output = RENDERER.render(&self.name, data)?;
-        Ok(output)
-    }
-
     async fn wait_for_output(&mut self) -> Option<Result<String>> {
         loop {
             let mut results = vec![self.rx.next().await?];
@@ -78,7 +59,7 @@ impl Block {
                 };
                 for path in event.paths {
                     if path == self.file {
-                        return Some(self.get_output().await);
+                        return Some(render_file(&self.name, &self.file, self.json).await);
                     }
                 }
             }
@@ -91,9 +72,11 @@ impl BlockStreamConfig for crate::config::InotifyConfig {
         let template = self.template.unwrap_or_else(|| "{{contents}}".to_string());
         RENDERER.add_template(&name, &template)?;
 
-        let mut block = Block::new(name.clone(), self.file, self.json)?;
-        let initial_output = futures::executor::block_on(block.get_output())?;
-        let first_run = stream::once(async { (name, Ok(initial_output)) });
+        let block = Block::new(name.clone(), self.file.clone(), self.json)?;
+        let first_run = stream::once(async move {
+            let result = render_file(&name, &self.file, self.json).await;
+            (name, result)
+        });
         let stream = stream::unfold(block, move |mut block| async {
             let result = block.wait_for_output().await?;
             Some(((block.name.clone(), result), block))
@@ -101,4 +84,22 @@ impl BlockStreamConfig for crate::config::InotifyConfig {
 
         Ok(Box::pin(first_run.chain(stream)))
     }
+}
+
+async fn render_file(name: &str, file: &std::path::Path, json: bool) -> Result<String> {
+    let contents = match tokio::fs::read_to_string(file).await {
+        Ok(contents) => contents,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => "".to_string(),
+        Err(error) => Err(error)?,
+    };
+    let contents = if json {
+        serde_json::from_str(&contents)?
+    } else {
+        serde_json::json!(contents)
+    };
+    let data = BlockData {
+        file: file.to_string_lossy().into_owned(),
+        contents,
+    };
+    RENDERER.render(&name, data)
 }
