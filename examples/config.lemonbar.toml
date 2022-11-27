@@ -52,7 +52,7 @@ interval = 5
 kind = "interval"
 command = "awk"
 args = [
-    "/MemTotal:/{total=$2}/MemFree:/{free=$2}END{printf \"%.0f\", 100*free/total}",
+    "/MemTotal:/{total=$2}/MemAvailable:/{avail=$2}END{printf \"%.01f\", 100 * (1 - avail/total)}",
     "/proc/meminfo",
     ]
 interval = 30
