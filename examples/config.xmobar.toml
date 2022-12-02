@@ -21,30 +21,29 @@ args = [
 interval = 1800
 json = true
 template = """\
-{%- set weather = output.currentobservation.Weather -%}
-{%- if weather != "NA" -%}{{weather}} {%- endif -%}
 {%- set temp = output.currentobservation.Temp | int -%}
 {%- if temp < 55 -%}
-    <fc=#00F>
+    {%- set color="#00F" -%}
 {%- elif temp > 80 -%}
-    <fc=#F00>
+    {%- set color="#F00" -%}
 {%- else -%}
-    <fc=#FFF>
+    {%- set color="#FF" -%}
 {%- endif -%}
-{{temp}}°</fc>\
+{%- set weather = output.currentobservation.Weather -%}
+{%- if weather != "NA" -%}{{weather}} {%- endif -%}<fc={{color}}>{{temp}}°</fc>\
 """
 
 [ blocks.cpu ]
 kind = "cpu"
 template = """
 {%- if cpu_times.non_idle < 20 -%}
-    <fc=#FFF>
+    {%- set color="#FFF" -%}
 {%- elif cpu_times.non_idle > 50 -%}
-    <fc=#F00>
+    {%- set color="#F00" -%}
 {%- else -%}
-    <fc=#00F>
+    {%- set color="#00F" -%}
 {%- endif -%}
-{{cpu_times.non_idle | round(precision=1)}}%</fc>\
+<fc={{color}}>{{cpu_times.non_idle | round(precision=1)}}%</fc>\
 """
 interval = 5
 
@@ -57,32 +56,28 @@ args = [
     ]
 interval = 30
 template = """
-{%- if output | int > 80 -%}
-    <fc=#F00>
-{%- else -%}
-    <fc=#FFF>
-{%- endif -%}
-{{output}}%</fc>\
+{%- if output | int > 80 -%}{% set color="#F00" %}{% else %}{% set color="#FFF" %}{% endif -%}
+<fc={{color}}>{{output}}%</fc>\
 """
 
 [ blocks.volume ]
 kind = "pulse-volume"
 template = """\
+{%- if muted -%}
+    {%- set color="#F00" -%}
+{%- elif volume <= 35 -%}
+    {%- set color="#555" -%}
+{%- elif volume > 100 -%}
+    {%- set color="#FF0" -%}
+{%- else -%}
+    {%- set color="#FFF" -%}
+{%- endif -%}
 <action=`pactl set-sink-mute "{{sink_name}}" toggle` button=2>\
 <action=`pactl set-sink-volume "{{sink_name}}" -5%` button=1>\
 <action=`pactl set-sink-volume "{{sink_name}}" +5%` button=3>\
 <action=`pactl set-sink-volume "{{sink_name}}" -1%` button=5>\
 <action=`pactl set-sink-volume "{{sink_name}}" +1%` button=4>\
-{%- if muted -%}
-    <fc=#F00>
-{%- elif volume <= 35 -%}
-    <fc=#555>
-{%- elif volume > 100 -%}
-    <fc=#FF0>
-{%- else -%}
-    <fc=#FFF>
-{%- endif -%}
-{{volume}}%</fc>\
+<fc={{color}}>{{volume}}%</fc>\
 </action></action></action></action></action>\
 """
 

@@ -10,7 +10,7 @@ template = """{ "full_text": "{{output}}" }"""
 
 [ blocks.local_mail ]
 kind = "inotify"
-file = "/var/mail/julian"
+file = "/var/mail/username"
 template = """
 {%- if contents -%}
 , { "full_text": "!", "color": "#FFFF00" }
@@ -27,8 +27,6 @@ args = [
 interval = 1800
 json = true
 template = """
-{%- set weather = output.currentobservation.Weather -%}
-{%- if weather != "NA" -%}{{weather}} {%- endif -%}
 {%- set temp = output.currentobservation.Temp | int -%}
 {%- if temp < 55 -%}
     {%- set color="#0000FF" -%}
@@ -37,7 +35,8 @@ template = """
 {%- else -%}
     {%- set color="#FFFFFF" -%}
 {%- endif -%}
-, { "full_text": "{{temp}}°", "color": "{{color}}" }"""
+{%- set weather = output.currentobservation.Weather -%}
+, { "full_text": "{%- if weather != "NA" -%}{{weather}} {%- endif -%}{{temp}}°", "color": "{{color}}" }"""
 
 [ blocks.cpu ]
 kind = "cpu"
