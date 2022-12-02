@@ -1,0 +1,94 @@
+header = "{\"version\": 1}\n["
+template = "[{{date}}{{local_mail}}{{weather}}{{cpu}}{{memory}}{{volume}}{{wifi}}],"
+
+[ blocks.date ]
+kind = "interval"
+command = "date"
+args = ['+%a %b %d %R']
+interval = 60
+template = """{ "full_text": "{{output}}" }"""
+
+[ blocks.local_mail ]
+kind = "inotify"
+file = "/var/mail/julian"
+template = """
+{%- if contents -%}
+, { "full_text": "!", "color": "#FFFF00" }
+{%- endif -%}
+"""
+
+[ blocks.weather ]
+kind = "interval"
+command = "curl"
+args = [
+    "-s",
+    "https://forecast.weather.gov/MapClick.php?FcstType=json&lat=47.8608&lon=-123.9370"
+    ]
+interval = 1800
+json = true
+template = """
+{%- set weather = output.currentobservation.Weather -%}
+{%- if weather != "NA" -%}{{weather}} {%- endif -%}
+{%- set temp = output.currentobservation.Temp | int -%}
+{%- if temp < 55 -%}
+    {%- set color="#0000FF" -%}
+{%- elif temp > 80 -%}
+    {%- set color="#FF0000" -%}
+{%- else -%}
+    {%- set color="#FFFFFF" -%}
+{%- endif -%}
+, { "full_text": "{{temp}}°", "color": "{{color}}" }"""
+
+[ blocks.cpu ]
+kind = "cpu"
+template = """
+{%- if cpu_times.non_idle < 20 -%}
+    {%- set color="#FFFFFF" -%}
+{%- elif cpu_times.non_idle > 50 -%}
+    {%- set color="#FF0000" -%}
+{%- else -%}
+    {%- set color="#0000FF" -%}
+{%- endif -%}
+, { "full_text": "CPU: {{cpu_times.non_idle | round(precision=1)}}%", "color": "{{color}}" }"""
+interval = 5
+
+[ blocks.memory ]
+kind = "interval"
+command = "awk"
+args = [
+    "/MemTotal:/{total=$2}/MemAvailable:/{avail=$2}END{printf \"%.01f\", 100 * (1 - avail/total)}",
+    "/proc/meminfo",
+    ]
+interval = 30
+template = """
+{%- if output | int > 80 -%}
+    {%- set color="#FF0000" -%}
+{%- else -%}
+    {%- set color="#FFFFFF" -%}
+{%- endif -%}
+, { "full_text": "Mem: {{output}}%", "color": "{{color}}" }"""
+
+[ blocks.volume ]
+kind = "pulse-volume"
+template = """
+{%- if muted -%}
+    {%- set color="#FF0000" -%}
+{%- elif volume <= 35 -%}
+    {%- set color="#555555" -%}
+{%- elif volume > 100 -%}
+    {%- set color="#FFFF00" -%}
+{%- else -%}
+    {%- set color="#FFFFFF" -%}
+{%- endif -%}
+, { "full_text": "Vol: {{volume}}%", "color": "{{color}}" }"""
+
+[ blocks.wifi ]
+kind = "network"
+device = "wlo1"
+template = """
+{%- if operstate == "up" -%}
+    , { "full_text": "{{essid}}" }
+{%- else -%}
+    , { "full_text": "{{device}} {{operstate}}", "color": "#FF0000" }
+{%- endif -%}
+"""

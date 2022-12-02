@@ -4,7 +4,7 @@ Yet another block based status bar generator.
 
 yablocks is a tool for listening to various data sources and spitting out
 formatted text suitable for use with text-based status bars like
-dzen2, xmobar, or lemonbar.
+dzen2, xmobar, i3bar, or lemonbar.
 
 ## Why yet another?
 
@@ -48,31 +48,56 @@ yablocks works well as a standalone binary.
 ## Usage
 
 yablocks waits for events and outputs text to `stdout`. For the most part,
-you'll just want to pipe the output of yablocks to your status bar. For
-instance:
+you'll just want to pipe the output of yablocks to your status bar.
+
+### dzen2
+
+You can pipe yablocks output to `dzen2`:
 
     yablocks | dzen2
 
-or:
+### lemonbar
+
+You can pipe yablocks output to `lemonbar`:
 
     yablocks | lemonbar
-
-or:
-
-    yablocks | xmobar
 
 When running lemonbar with clickable areas you may want to do something like:
 
     yablocks | lemonbar | sh
 
+### xmobar
+
+You can pipe yablocks output to `xmobar`:
+
+    yablocks | xmobar
+
+
 If launching xmobar from XMonad you can instead use yablocks with `CommandReader`:
 
+    # ~/.config/xmobar/xmobarrc
     Config {
         commands = [
             Run CommandReader "/usr/bin/yablocks "yablocks"
         ],
         template = " %StdinReader% } { %yablocks% "
     }
+
+### i3bar
+
+You can use yablocks as your `status_command`:
+
+    # ~/.config/i3/config
+    bar {
+        status_command yablocks
+    }
+
+If using the i3bar [json protocol](https://i3wm.org/docs/i3bar-protocol.html)
+you'll need to use the `header` field to send the version header. See the
+example
+[here](https://github.com/julianandrews/yablocks/tree/master/examples/config.i3bar.toml).
+
+Currently there's no support for click events.
 
 ## Configuration
 

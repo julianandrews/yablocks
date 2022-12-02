@@ -19,6 +19,7 @@ pub fn load_config(file: Option<std::path::PathBuf>) -> Result<Config> {
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     pub template: String,
+    pub header: Option<String>,
     #[serde(default)]
     pub blocks: BTreeMap<String, BlockConfig>,
 }

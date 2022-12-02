@@ -19,6 +19,7 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     let config::Config {
         template,
+        header,
         blocks: block_configs,
     } = config::load_config(args.configfile).context("Failed to load config")?;
 
@@ -49,6 +50,9 @@ async fn main() -> Result<()> {
         });
     let mut stream = select_all(block_streams);
 
+    if let Some(header) = header {
+        println!("{}", header);
+    }
     while let Some((name, result)) = stream.next().await {
         match result {
             Ok(value) => context.insert(name, value),
