@@ -88,7 +88,7 @@ async fn main() -> Result<()> {
             .context("Failed to render template")?;
         println!("{}", output);
     }
-    Err(anyhow::anyhow!("Input stream ended"))
+    Ok(())
 }
 
 #[derive(Parser, Debug, Clone)]
