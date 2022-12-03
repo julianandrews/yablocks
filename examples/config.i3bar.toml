@@ -1,5 +1,6 @@
-header = "{\"version\": 1}\n["
+header = "{\"version\": 1, \"click_events\": true}\n["
 template = "[{{date}}{{local_mail}}{{weather}}{{cpu}}{{memory}}{{volume}}{{wifi}}],"
+stdin-handler = {"command" = "/home/julian/Code/yablocks/examples/i3bar-click-handler.sh"}
 
 [ blocks.date ]
 kind = "interval"
@@ -79,7 +80,7 @@ template = """
 {%- else -%}
     {%- set color="#FFFFFF" -%}
 {%- endif -%}
-, { "full_text": "Vol: {{volume}}%", "color": "{{color}}" }"""
+, { "name": "volume", "full_text": "Vol: {{volume}}%", "color": "{{color}}" }"""
 
 [ blocks.wifi ]
 kind = "network"

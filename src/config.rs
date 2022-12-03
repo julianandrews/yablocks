@@ -20,8 +20,17 @@ pub fn load_config(file: Option<std::path::PathBuf>) -> Result<Config> {
 pub struct Config {
     pub template: String,
     pub header: Option<String>,
+    pub stdin_handler: Option<StdinHandler>,
     #[serde(default)]
     pub blocks: BTreeMap<String, BlockConfig>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct StdinHandler {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]

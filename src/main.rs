@@ -1,6 +1,7 @@
 mod block_stream;
 mod config;
 mod renderer;
+mod stdin_handler;
 
 use std::collections::BTreeMap;
 
@@ -20,8 +21,20 @@ async fn main() -> Result<()> {
     let config::Config {
         template,
         header,
+        stdin_handler,
         blocks: block_configs,
     } = config::load_config(args.configfile).context("Failed to load config")?;
+
+    // If an stdin_handler is specified, make sure we're not using any stdin blocks, then run it.
+    if let Some(handler) = stdin_handler {
+        if block_configs
+            .iter()
+            .any(|(_, config)| matches!(config, config::BlockConfig::Stdin(_)))
+        {
+            anyhow::bail!("Cannot use stdin block with stdin_handler");
+        }
+        stdin_handler::spawn_handler(handler)?;
+    }
 
     // Use the empty string for the root template to avoid conflicts with any block templates.
     RENDERER

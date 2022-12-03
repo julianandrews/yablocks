@@ -93,11 +93,13 @@ You can use yablocks as your `status_command`:
     }
 
 If using the i3bar [json protocol](https://i3wm.org/docs/i3bar-protocol.html)
-you'll need to use the `header` field to send the version header. See the
-example
-[here](https://github.com/julianandrews/yablocks/tree/master/examples/config.i3bar.toml).
-
-Currently there's no support for click events.
+you'll need to use the `header` field to send the version header. If you want
+click event support you'll need to specify an `stdin_handler`. All click events
+will get passed on to the handler. See the
+[docs](https://i3wm.org/docs/i3bar-protocol.html#_click_events) for details or
+check out the
+[examples](https://github.com/julianandrews/yablocks/tree/master/examples) to
+see a simple version.
 
 ## Configuration
 
@@ -106,19 +108,32 @@ look for it in your XDG config directory (by default
 `~/.config/yablocks/config.toml`), or you can specify the config file path on
 the command line.
 
-A config file is a table of blocks along with a template referencing the block
-names. Both the main template and any individual block templates use
-[Tera](https://tera.netlify.app/) as the templating engine. Outputs from
-blocks can be used in their corresponding templates. See the documentation below
-for available outputs. For ideas, see the examples
+To get started see the examples
 [here](https://github.com/julianandrews/yablocks/tree/master/examples). For
 compatibility I've kept fancy fonts out of the examples, but if your status bar
-supports it, check out [Nerd Fonts](https://www.nerdfonts.com/) to add some flair
-to your status bar.
+supports it, check out [Nerd Fonts](https://www.nerdfonts.com/) to add some
+flair.
+
+### Config file fields
+
+- `template` - the main template to render
+- `blocks` - a toml table of block configs
+- `header` (optional) - an initial string to print on start
+- `stdin-handler` (optional) - a command to run to process all stdin input
+
+Only `template` and `blocks` are required. Both the main template and any
+individual block templates use [Tera](https://tera.netlify.app/) as the
+templating engine. Outputs from blocks can be used in their corresponding
+templates. See the documentation below for available outputs.
+
+If using `i3bar` you'll want to use `header` to send the initial version
+header and opening `[`. yablocks won't handle click events for you, but you can
+use `stdin-handler.command` and `stdin-handler.args` to specify a command to
+process all click events. See the examples for ideas.
 
 ### Testing Config
 
-At its core yablocks is just a tool for spitting out template output to
+At its core yablocks is just a tool for spitting out templated output to
 `stdout` whenever data changes. Any error messages will output to `stderr`.
 
 The easiest way to test your configuration is to simply run `yablocks` from the
@@ -300,6 +315,8 @@ all JSON fields will be accessible from the `output` value in the outputs.
 ### stdin
 
 Read from stdin and show output for each line.
+
+Stdin blocks can only be used if no `stdin_handler` has been configured.
 
 If `json` is set to `true`, the output from stdin will be parsed as JSON and
 all JSON fields will be accessible from the `output` value in the outputs.
