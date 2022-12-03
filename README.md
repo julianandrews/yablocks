@@ -94,12 +94,16 @@ You can use yablocks as your `status_command`:
 
 If using the i3bar [json protocol](https://i3wm.org/docs/i3bar-protocol.html)
 you'll need to use the `header` field to send the version header. If you want
-click event support you'll need to specify an `stdin_handler`. All click events
-will get passed on to the handler. See the
-[docs](https://i3wm.org/docs/i3bar-protocol.html#_click_events) for details or
-check out the
+click event support you'll need to specify an `stdin-handler`. Something like:
+
+    stdin-handler = { "command": "/path/to/my/command", "args": ["-a", "-b"] }
+
+If using `stdin-handler`, `command` is required, but `args` is optional. All
+click events will get passed on to the handler. See the
+[docs](https://i3wm.org/docs/i3bar-protocol.html#_click_events) for details on
+click events, and check out the
 [examples](https://github.com/julianandrews/yablocks/tree/master/examples) to
-see a simple version.
+see a simple handler.
 
 ## Configuration
 
@@ -126,10 +130,7 @@ individual block templates use [Tera](https://tera.netlify.app/) as the
 templating engine. Outputs from blocks can be used in their corresponding
 templates. See the documentation below for available outputs.
 
-If using `i3bar` you'll want to use `header` to send the initial version
-header and opening `[`. yablocks won't handle click events for you, but you can
-use `stdin-handler.command` and `stdin-handler.args` to specify a command to
-process all click events. See the examples for ideas.
+The `header` and `stdin-handler` fields are primarily used for [i3bar](#i3bar).
 
 ### Testing Config
 
