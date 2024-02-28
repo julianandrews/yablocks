@@ -1,0 +1,103 @@
+name: Create Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+        targets: x86_64-unknown-linux-gnu
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y libpulse-dev
+
+    - name: Build binary
+      run: cargo build --verbose --release --target x86_64-unknown-linux-gnu
+      env:
+        RUST_BACKTRACE: 1
+
+    - name: Strip binary
+      run: strip "target/x86_64-unknown-linux-gnu/release/yablocks"
+
+    - name: Build archive
+      id: build_archive
+      shell: bash
+      run: |
+        version="$(cargo metadata --format-version 1 | jq -r '[.packages[]|select(.name=="yablocks")][0].version')"
+        mkdir archive
+        cp LICENSE README.md archive/
+        cd archive
+        cp "../target/x86_64-unknown-linux-gnu/release/yablocks" ./
+        name="yablocks-$version-86_64-unknown-linux-gnu.tar.gz"
+        tar -czf "$name" *
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+
+    - name: Upload archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.build_archive.outputs.name }}
+        path: archive/${{ steps.build_archive.outputs.name }}
+
+  make_deb:
+    name: Make .deb
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: stable
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install -y libpulse-dev
+
+    - name: Build .deb
+      id: deb
+      run: |
+        cargo install cargo-deb
+        debfile=$(cargo deb)
+        result=$?
+        echo "debfile=$(basename $debfile)" >> "$GITHUB_OUTPUT"
+        exit $result
+
+    - name: Upload .deb
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.deb.outputs.debfile }}
+        path: target/debian/${{ steps.deb.outputs.debfile }}
+
+  release:
+    name: Create release
+    needs: [build, make_deb]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        merge-multiple: true
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        draft: true
+        files: |
+          artifacts/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
