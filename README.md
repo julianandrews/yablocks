@@ -271,6 +271,10 @@ Monitor status of a network device.
 
 Monitor a pulse audio sink.
 
+This is the recommended volume monitor block. It works with both PulseAudio and
+PipeWire (requires `pipewire-pulse`, which is installed by default in most
+popular distros).
+
 #### Inputs
 
 | name      | type   | description                                                      |
