@@ -95,7 +95,7 @@ impl PulseVolumeMonitor {
                     return Err(anyhow::anyhow!("Pulse audio mainloop quit"));
                 }
                 IterateResult::Err(error) => {
-                    return Err(anyhow::anyhow!("Pulse audio mainloop error: {:?}", error));
+                    return Err(anyhow::anyhow!("Pulse audio mainloop error: {error:?}"));
                 }
                 IterateResult::Success(_) => {}
             }
@@ -134,7 +134,7 @@ impl PulseVolumeMonitor {
 
     fn run(&mut self) -> Result<()> {
         self.mainloop.borrow_mut().run().map_err(|(err, _retval)| {
-            anyhow::anyhow!("Failed to run pulse audio mainloop: {:?}", err)
+            anyhow::anyhow!("Failed to run pulse audio mainloop: {err:?}")
         })?;
         Ok(())
     }
@@ -146,8 +146,7 @@ fn monitor_sink(sink_name: Option<String>, mut tx: Sender<Result<BlockData>>) {
         Err(error) => {
             send_or_eprint(
                 Err(anyhow::anyhow!(
-                    "Failed to construct pulse volume monitor: {:?}",
-                    error
+                    "Failed to construct pulse volume monitor: {error:?}"
                 )),
                 &mut tx,
             );
@@ -157,7 +156,7 @@ fn monitor_sink(sink_name: Option<String>, mut tx: Sender<Result<BlockData>>) {
     monitor.add_sink(sink_name, tx.clone());
     if let Err(error) = monitor.run() {
         send_or_eprint(
-            Err(anyhow::anyhow!("PulseAudio mainloop failed: {:?}", error)),
+            Err(anyhow::anyhow!("PulseAudio mainloop failed: {error:?}")),
             &mut tx,
         );
     }

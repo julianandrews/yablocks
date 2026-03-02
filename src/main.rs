@@ -52,25 +52,25 @@ async fn main() -> Result<()> {
         .map(|(name, config)| {
             config
                 .to_stream(name.clone())
-                .with_context(|| format!("Failed to initialize block '{}'", name))
+                .with_context(|| format!("Failed to initialize block '{name}'"))
         })
         .filter_map(|result| match result {
             Ok(block_stream) => Some(block_stream),
             Err(error) => {
-                eprintln!("{:?}", error);
+                eprintln!("{error:?}");
                 None
             }
         });
     let mut stream = select_all(block_streams);
 
     if let Some(header) = header {
-        println!("{}", header);
+        println!("{header}");
     }
     while let Some((name, result)) = stream.next().await {
         match result {
             Ok(value) => context.insert(name, value),
             Err(error) => {
-                eprintln!("Error from {}: {:?}", name, error);
+                eprintln!("Error from {name}: {error:?}");
                 continue;
             }
         };
@@ -80,13 +80,13 @@ async fn main() -> Result<()> {
                 Ok(value) => {
                     context.insert(name, value);
                 }
-                Err(error) => eprintln!("Error from {}: {:?}", name, error),
+                Err(error) => eprintln!("Error from {name}: {error:?}"),
             };
         }
         let output = RENDERER
             .render("", &context)
             .context("Failed to render template")?;
-        println!("{}", output);
+        println!("{output}");
     }
     Ok(())
 }

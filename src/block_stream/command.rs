@@ -27,7 +27,7 @@ impl Block {
             .stdout(std::process::Stdio::piped())
             .spawn()?
             .stdout
-            .ok_or_else(|| anyhow::anyhow!(format!("Failed to open stdout for {}", name)))?;
+            .ok_or_else(|| anyhow::anyhow!(format!("Failed to open stdout for {name}")))?;
         let lines = BufReader::new(stdout).lines();
         Ok(Self {
             name,

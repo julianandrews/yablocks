@@ -142,7 +142,7 @@ impl TryFrom<i32> for RTSigNum {
         let min = libc::SIGRTMIN();
         let max = libc::SIGRTMAX();
         if value < min || value > max {
-            Err(format!("Invalid signal (not between {} and {})", min, max))
+            Err(format!("Invalid signal (not between {min} and {max})"))
         } else {
             Ok(RTSigNum(value))
         }

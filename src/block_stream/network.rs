@@ -24,33 +24,29 @@ struct Block {
 
 impl Block {
     fn parse_message(&self, message: NetlinkMessage<RtnlMessage>) -> Option<String> {
-        if let NetlinkPayload::InnerMessage(message) = message.payload {
-            match message {
-                RtnlMessage::NewLink(link_message)
-                | RtnlMessage::DelLink(link_message)
-                | RtnlMessage::SetLink(link_message)
-                | RtnlMessage::NewLinkProp(link_message)
-                | RtnlMessage::DelLinkProp(link_message) => {
-                    let mut link_matches = false;
-                    let mut operstate = None;
-                    for nla in link_message.nlas {
-                        match nla {
-                            Nla::IfName(name) | Nla::AltIfName(name) => {
-                                if name == self.device {
-                                    link_matches = true
-                                }
-                            }
-                            Nla::OperState(state) => {
-                                operstate = Some(format!("{:?}", state).to_lowercase())
-                            }
-                            _ => (),
-                        }
-                        if link_matches && operstate.is_some() {
-                            return operstate;
+        if let NetlinkPayload::InnerMessage(
+            RtnlMessage::NewLink(link_message)
+            | RtnlMessage::DelLink(link_message)
+            | RtnlMessage::SetLink(link_message)
+            | RtnlMessage::NewLinkProp(link_message)
+            | RtnlMessage::DelLinkProp(link_message),
+        ) = message.payload
+        {
+            let mut link_matches = false;
+            let mut operstate = None;
+            for nla in link_message.nlas {
+                match nla {
+                    Nla::IfName(name) | Nla::AltIfName(name) => {
+                        if name == self.device {
+                            link_matches = true
                         }
                     }
+                    Nla::OperState(state) => operstate = Some(format!("{state:?}").to_lowercase()),
+                    _ => (),
                 }
-                _ => (),
+                if link_matches && operstate.is_some() {
+                    return operstate;
+                }
             }
         }
         None
@@ -133,8 +129,7 @@ impl BlockData {
                     let essid = interface.ssid.as_ref().map(nl80211::parse_string);
                     let station = interface.get_station_info()?;
                     let signal_strength = station.average_signal.as_ref().map(nl80211::parse_i8);
-                    let quality =
-                        signal_strength.map(|dbm| 2 * (dbm.max(-100).min(-50) + 100) as u8);
+                    let quality = signal_strength.map(|dbm| 2 * (dbm.clamp(-100, -50) + 100) as u8);
                     return Ok(Some((essid, quality)));
                 }
             }
