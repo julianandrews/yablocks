@@ -257,15 +257,19 @@ Monitor status of a network device.
 | template | string | template string (optional, default `{{operstate}}`) |
 | device   | string | network device to monitor (e.g. wlan0)              |
 
-#### Ouputs
+#### Outputs
 
-| name      | type    | description                            |
-| --------  | ------- | -------------------------------------- |
-| device    | string  | provided network device                |
-| operstate | string  | state of the device                    |
-| wireless  | boolean | whether the device is wireless         |
-| essid     | string  | essid (if wireless and connected)      |
-| quality   | number  | quality of wireless connection (0-100) |
+| name                | type           | description                                                       |
+| ------------------- | -------------- | ----------------------------------------------------------------- |
+| device              | string         | provided network device                                           |
+| operstate           | string         | state of the device (up, down, unknown, etc)                      |
+| wireless            | boolean        | whether the device is wireless                                    |
+| essid               | string         | essid (if wireless and connected)                                 |
+| quality             | number         | quality of wireless connection (0-100)                            |
+| ipv4_addresses      | array(string)  | IPv4 addresses assigned to the interface                          |
+| ipv6_addresses      | array(string)  | IPv6 addresses assigned to the interface (excludes link-local)    |
+| ipv4_gateway        | string         | IPv4 default gateway (if any)                                     |
+| ipv6_gateway        | string         | IPv6 default gateway (if any)                                     |
 
 ### pulse-volume
 
@@ -282,7 +286,7 @@ popular distros).
 | template  | string | template string (optional, default `{{volume}}`)                 |
 | sink-name | string | pulse audio sink to monitor (optional, defaults to default sink) |
 
-#### Ouputs
+#### Outputs
 
 | name      | type    | description               |
 | --------  | ------- | ------------------------- |
