@@ -140,6 +140,49 @@ At its core yablocks is just a tool for spitting out templated output to
 The easiest way to test your configuration is to simply run `yablocks` from the
 command line and see what output you get.
 
+### Quick Examples
+
+The built-in blocks cover many of the most common data sources you might want
+for a status bar, but the focus is on blocks that can't easily be implemented
+with a simple polling model. Many common metrics are easy to get with a simple
+'interval' block.
+
+Memory usage:
+
+```toml
+[blocks.memory]
+kind = "interval"
+command = "awk"
+args = [
+    "/MemTotal:/{total=$2}/MemAvailable:/{avail=$2}END{printf \"%.01f\", 100 * (1 - avail/total)}",
+    "/proc/meminfo",
+    ]
+interval = 10
+```
+
+Disk usage for /home:
+
+```toml
+[blocks.disk]
+kind = "interval"
+command = "sh"
+args = ["-c", "df --output=pcent /home | awk 'NR==2 {print $1}'"]
+interval = 60
+```
+
+5 minute load average:
+
+```toml
+[[blocks]]
+kind = "interval"
+command = "awk"
+args = ["print $2", "/proc/loadavg"]
+interval = 10
+```
+
+Note: 'interval' blocks don't spawn a shell. If you want to use shell
+scripting, use `sh - c` (or similar). See the disk block above for an example.
+
 ## Blocks
 
 Blocks have inputs which can be provided in your config file, and outputs which
