@@ -4,6 +4,7 @@ mod inotify;
 mod interval;
 mod network;
 mod network_stats;
+mod noop;
 mod pulse_volume;
 mod signal;
 mod stdin;
@@ -28,6 +29,7 @@ impl BlockStreamConfig for config::BlockConfig {
             config::BlockConfig::Inotify(config) => config.to_stream(name),
             config::BlockConfig::Network(config) => config.to_stream(name),
             config::BlockConfig::NetworkStats(config) => config.to_stream(name),
+            config::BlockConfig::Noop(config) => config.to_stream(name),
             config::BlockConfig::PulseVolume(config) => config.to_stream(name),
             config::BlockConfig::Signal(config) => config.to_stream(name),
             config::BlockConfig::Stdin(config) => config.to_stream(name),

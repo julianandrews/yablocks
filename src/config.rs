@@ -42,6 +42,7 @@ pub enum BlockConfig {
     Inotify(InotifyConfig),
     Network(NetworkConfig),
     NetworkStats(NetworkStatsConfig),
+    Noop(NoopConfig),
     PulseVolume(PulseVolumeConfig),
     Signal(SignalConfig),
     Stdin(StdinConfig),
@@ -182,6 +183,13 @@ pub struct StdinConfig {
     pub template: Option<String>,
     #[serde(default)]
     pub json: bool,
+}
+
+/// A no-op block that does nothing. Used when no other blocks are configured.
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct NoopConfig {
+    pub template: Option<String>,
 }
 
 /// Template Values:

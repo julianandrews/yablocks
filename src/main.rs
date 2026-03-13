@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
         context.insert(name.clone(), "".to_string());
     }
 
-    let block_streams = block_configs
+    let mut block_streams: Vec<_> = block_configs
         .into_iter()
         .map(|(name, config)| {
             config
@@ -60,7 +60,16 @@ async fn main() -> Result<()> {
                 eprintln!("{error:?}");
                 None
             }
-        });
+        })
+        .collect();
+
+    // If no blocks are configured, add a noop block that sleeps forever.
+    if block_streams.is_empty() {
+        let noop_stream = config::BlockConfig::Noop(config::NoopConfig { template: None })
+            .to_stream("noop".to_string())?;
+        block_streams.push(noop_stream);
+    }
+
     let mut stream = select_all(block_streams);
 
     if let Some(header) = header {
