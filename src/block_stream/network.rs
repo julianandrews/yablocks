@@ -30,6 +30,13 @@ struct Block {
     messages: Receiver,
 }
 
+struct WifiInfo {
+    essid: Option<String>,
+    quality: Option<u8>,
+    signal_dbm: Option<i8>,
+    frequency: Option<u32>,
+}
+
 #[derive(serde::Serialize, Debug, Clone)]
 struct BlockData {
     device: String,
@@ -37,6 +44,8 @@ struct BlockData {
     wireless: bool,
     essid: Option<String>,
     quality: Option<u8>,
+    signal_dbm: Option<i8>,
+    frequency: Option<u32>,
     ipv4_addresses: Vec<IpAddr>,
     ipv6_addresses: Vec<IpAddr>,
     ipv4_gateway: Option<IpAddr>,
@@ -166,7 +175,10 @@ impl BlockData {
         let ipv4_gateway = Self::get_gateway(device, IpVersion::V4).await;
         let ipv6_gateway = Self::get_gateway(device, IpVersion::V6).await;
 
-        let (essid, quality) = wireless_info.unwrap_or((None, None));
+        let (essid, quality, signal_dbm, frequency) = wireless_info
+            .map_or((None, None, None, None), |w| {
+                (w.essid, w.quality, w.signal_dbm, w.frequency)
+            });
 
         BlockData {
             device: device.to_string(),
@@ -174,6 +186,8 @@ impl BlockData {
             wireless: essid.is_some() || quality.is_some(),
             essid,
             quality,
+            signal_dbm,
+            frequency,
             ipv4_addresses,
             ipv6_addresses,
             ipv4_gateway,
@@ -189,7 +203,7 @@ impl BlockData {
             .unwrap_or_else(|_| "unknown".to_string())
     }
 
-    fn get_wireless_info(device: &str) -> Result<Option<(Option<String>, Option<u8>)>> {
+    fn get_wireless_info(device: &str) -> Result<Option<WifiInfo>> {
         let interfaces = nl80211::Socket::connect()?.get_interfaces_info()?;
         for interface in interfaces {
             if let Some(bytes) = &interface.name {
@@ -199,7 +213,13 @@ impl BlockData {
                     let station = interface.get_station_info()?;
                     let signal_strength = station.average_signal.as_ref().map(nl80211::parse_i8);
                     let quality = signal_strength.map(|dbm| 2 * (dbm.clamp(-100, -50) + 100) as u8);
-                    return Ok(Some((essid, quality)));
+                    let frequency = interface.frequency.as_ref().map(nl80211::parse_u32);
+                    return Ok(Some(WifiInfo {
+                        essid,
+                        quality,
+                        signal_dbm: signal_strength,
+                        frequency,
+                    }));
                 }
             }
         }
