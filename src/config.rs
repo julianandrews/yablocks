@@ -41,6 +41,7 @@ pub enum BlockConfig {
     Interval(IntervalConfig),
     Inotify(InotifyConfig),
     Network(NetworkConfig),
+    NetworkStats(NetworkStatsConfig),
     PulseVolume(PulseVolumeConfig),
     Signal(SignalConfig),
     Stdin(StdinConfig),
@@ -107,6 +108,24 @@ pub struct InotifyConfig {
 pub struct NetworkConfig {
     pub template: Option<String>,
     pub device: String,
+}
+
+/// Template Values:
+///   - rx_bytes_per_sec
+///   - tx_bytes_per_sec
+///   - rx_packets_per_sec
+///   - tx_packets_per_sec
+const fn default_interval() -> u64 {
+    1
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub struct NetworkStatsConfig {
+    pub template: Option<String>,
+    pub device: String,
+    #[serde(default = "default_interval")]
+    pub interval: u64,
 }
 
 /// Template Values:

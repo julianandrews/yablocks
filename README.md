@@ -273,6 +273,27 @@ Monitor status of a network device.
 | ipv4_gateway        | string         | IPv4 default gateway (if any)                                     |
 | ipv6_gateway        | string         | IPv6 default gateway (if any)                                     |
 
+### network-stats
+
+Monitor network traffic stats for a device.
+
+#### Inputs
+
+| name     | type   | description                                                                         |
+| -------- | ------ | ----------------------------------------------------------------------------------- |
+| template | string | template string (optional, default `{{rx_bytes_per_sec}} ↓ {{tx_bytes_per_sec}} ↑`) |
+| device   | string | network device to monitor (e.g. wlan0)                                              |
+| interval | number | how often to poll for stats in seconds (optional, default `1`)                      |
+
+#### Outputs
+
+| name               | type   | description                    |
+| ----------------- | ------ | ------------------------------ |
+| rx_bytes_per_sec   | number | received bytes per second      |
+| tx_bytes_per_sec   | number | transmitted bytes per second   |
+| rx_packets_per_sec | number | received packets per second    |
+| tx_packets_per_sec | number | transmitted packets per second |
+
 ### pulse-volume
 
 Monitor a pulse audio sink.
