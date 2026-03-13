@@ -177,7 +177,7 @@ interval = 60
 [[blocks]]
 kind = "interval"
 command = "awk"
-args = ["print $2", "/proc/loadavg"]
+args = ["{print $2}", "/proc/loadavg"]
 interval = 10
 ```
 
