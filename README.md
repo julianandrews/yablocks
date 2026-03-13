@@ -288,7 +288,7 @@ Monitor network traffic stats for a device.
 #### Outputs
 
 | name               | type   | description                    |
-| ----------------- | ------ | ------------------------------ |
+| ------------------ | ------ | ------------------------------ |
 | rx_bytes_per_sec   | number | received bytes per second      |
 | tx_bytes_per_sec   | number | transmitted bytes per second   |
 | rx_packets_per_sec | number | received packets per second    |
