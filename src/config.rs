@@ -16,7 +16,7 @@ pub fn load_config(file: Option<std::path::PathBuf>) -> Result<Config> {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Config {
     pub template: String,
     pub header: Option<String>,
@@ -26,7 +26,7 @@ pub struct Config {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct StdinHandler {
     pub command: String,
     #[serde(default)]
@@ -53,7 +53,7 @@ pub enum BlockConfig {
 ///   - args
 ///   - output
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CommandConfig {
     pub template: Option<String>,
     pub command: String,
@@ -69,7 +69,7 @@ pub struct CommandConfig {
 ///   - interval
 ///   - output
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct IntervalConfig {
     pub template: Option<String>,
     pub command: String,
@@ -84,7 +84,7 @@ pub struct IntervalConfig {
 ///   - file
 ///   - contents
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct InotifyConfig {
     pub template: Option<String>,
     pub file: std::path::PathBuf,
@@ -105,7 +105,7 @@ pub struct InotifyConfig {
 ///   - ipv4_gateway
 ///   - ipv6_gateway
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct NetworkConfig {
     pub template: Option<String>,
     pub device: String,
@@ -121,7 +121,7 @@ const fn default_interval() -> u64 {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct NetworkStatsConfig {
     pub template: Option<String>,
     pub device: String,
@@ -134,7 +134,7 @@ pub struct NetworkStatsConfig {
 ///   - volume
 ///   - muted
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct PulseVolumeConfig {
     pub template: Option<String>,
     pub sink_name: Option<String>,
@@ -146,7 +146,7 @@ pub struct PulseVolumeConfig {
 ///   - signal
 ///   - output
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct SignalConfig {
     pub template: Option<String>,
     pub command: String,
@@ -178,7 +178,7 @@ impl TryFrom<i32> for RTSigNum {
 /// Template Values:
 ///   - output
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct StdinConfig {
     pub template: Option<String>,
     #[serde(default)]
@@ -196,7 +196,7 @@ pub struct NoopConfig {
 ///   - interval
 ///   - cpu_times
 #[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "kebab-case")]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CpuConfig {
     pub template: Option<String>,
     pub interval: u64,
