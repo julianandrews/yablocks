@@ -96,6 +96,12 @@ pub struct InotifyConfig {
 ///   - wireless
 ///   - essid
 ///   - quality
+///   - signal_dbm
+///   - frequency
+///   - ipv4_addresses
+///   - ipv6_addresses
+///   - ipv4_gateway
+///   - ipv6_gateway
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case")]
 pub struct NetworkConfig {

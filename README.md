@@ -266,8 +266,8 @@ Monitor status of a network device.
 | wireless            | boolean        | whether the device is wireless                                    |
 | essid               | string         | essid (if wireless and connected)                                 |
 | quality             | number         | quality of wireless connection (0-100)                            |
-| signal_dbm          | number         | signal strength in dBm (if wireless)                             |
-| frequency           | number         | WiFi frequency in MHz (if wireless)                              |
+| signal_dbm          | number         | signal strength in dBm (if wireless)                              |
+| frequency           | number         | WiFi frequency in MHz (if wireless)                               |
 | ipv4_addresses      | array(string)  | IPv4 addresses assigned to the interface                          |
 | ipv6_addresses      | array(string)  | IPv6 addresses assigned to the interface (excludes link-local)    |
 | ipv4_gateway        | string         | IPv4 default gateway (if any)                                     |
