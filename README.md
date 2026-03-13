@@ -20,7 +20,7 @@ I wanted a status bar generator that:
 - made it easy to implement event based data sources.
 
 Since it incorporates a fully featured templating engine
-([Tera](https://tera.netlify.app/)), yablocks decouples data generation from
+([Tera](https://keats.github.io/tera/docs/#templates)), yablocks decouples data generation from
 display. This means that the same block can be used to render the data with the
 exact text and markup you want for for any status bar. This also means that you
 often won't need to write and run wrapper scripts around a binary just to do
@@ -126,9 +126,10 @@ flair.
 - `stdin-handler` (optional) - a command to run to process all stdin input
 
 Only `template` and `blocks` are required. Both the main template and any
-individual block templates use [Tera](https://tera.netlify.app/) as the
-templating engine. Outputs from blocks can be used in their corresponding
-templates. See the documentation below for available outputs.
+individual block templates use
+[Tera](https://keats.github.io/tera/docs/#templates) as the templating engine.
+Outputs from blocks can be used in their corresponding templates. See the
+documentation below for available outputs.
 
 The `header` and `stdin-handler` fields are primarily used for [i3bar](#i3bar).
 
