@@ -146,6 +146,27 @@ New blocks should follow this pattern:
 - Use `#[tokio::test]` for async tests
 - Follow existing test patterns in the codebase
 
+### Manual Testing
+
+For blocks that can't be easily unit tested (e.g., time-based blocks, template rendering):
+
+1. Write a test config to `/tmp/yablocks.toml`:
+   ```toml
+   template = "{{test}}"
+
+   [blocks.test]
+   kind = "your-block"
+   # config options...
+   template = "{{field1}} | {{field2}}"
+   ```
+
+2. Run the test config:
+   ```bash
+   cargo run -- -c /tmp/yablocks.toml
+   ```
+
+3. Verify output looks correct, then kill the process (`Ctrl+C` or `pkill yablocks`)
+
 ### Configuration File Format
 
 - Config files use TOML format
