@@ -236,6 +236,41 @@ probably what you actually want.
 | interval  | number      | interval provided               |
 | cpu_times | map(number) | Map of CPU times as percentages |
 
+### date-time
+
+Display the current date and time. The block sleeps until the next boundary of the
+specified precision to avoid drift.
+
+#### Inputs
+
+| name      | type   | description                                                           |
+| --------- | ------ | --------------------------------------------------------------------- |
+| template  | string | template string (optional, default `{{hour}}:{{minute}}`)             |
+| precision | string | update frequency: `second`, `minute`, `hour`, or `day`                |
+| timezone  | string | IANA timezone (e.g. `America/New_York`) (optional, defaults to local) |
+
+#### Outputs
+
+| name                   | type   | description                                     |
+| ---------------------- | ------ | ------------------------------------------------|
+| timestamp              | number | Unix timestamp                                  |
+| year                   | number | year (e.g. 2026)                                |
+| month                  | number | month (1-12)                                    |
+| month_name             | string | month name (e.g. "January")                     |
+| day                    | number | day of month (1-31)                             |
+| hour                   | number | hour (0-23)                                     |
+| hour_12                | number | hour in 12-hour format (1-12)                   |
+| minute                 | number | minute (0-59)                                   |
+| second                 | number | second (0-59)                                   |
+| am_pm                  | string | "AM" or "PM"                                    |
+| weekday                | number | day of week (0 = Sunday, 6 = Saturday)          |
+| weekday_name           | string | day name (e.g. "Monday")                        |
+| utc_offset             | number | UTC offset in seconds                           |
+| timezone_abbreviation  | string | timezone abbreviation (e.g. "EST", "JST")       |
+
+For a full list of valid IANA timezone codes, see the
+[IANA Time Zone Database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
+
 ### interval
 
 Run a command periodically and show output.

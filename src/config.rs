@@ -38,6 +38,7 @@ pub struct StdinHandler {
 pub enum BlockConfig {
     Command(CommandConfig),
     Cpu(CpuConfig),
+    DateTime(DateTimeConfig),
     Interval(IntervalConfig),
     Inotify(InotifyConfig),
     Network(NetworkConfig),
@@ -200,4 +201,37 @@ pub struct NoopConfig {
 pub struct CpuConfig {
     pub template: Option<String>,
     pub interval: u64,
+}
+
+#[derive(Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Precision {
+    Second,
+    Minute,
+    Hour,
+    Day,
+}
+
+/// Template Values:
+///   - timestamp
+///   - year
+///   - month
+///   - month_name
+///   - day
+///   - hour
+///   - hour_12
+///   - minute
+///   - second
+///   - am_pm
+///   - weekday
+///   - weekday_name
+///   - utc_offset
+///   - timezone_abbreviation
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct DateTimeConfig {
+    pub template: Option<String>,
+    pub precision: Precision,
+    #[serde(default)]
+    pub timezone: Option<chrono_tz::Tz>,
 }
