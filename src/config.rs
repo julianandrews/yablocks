@@ -49,10 +49,6 @@ pub enum BlockConfig {
     Stdin(StdinConfig),
 }
 
-/// Template Values:
-///   - command
-///   - args
-///   - output
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CommandConfig {
@@ -64,11 +60,6 @@ pub struct CommandConfig {
     pub json: bool,
 }
 
-/// Template Values:
-///   - command
-///   - args
-///   - interval
-///   - output
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct IntervalConfig {
@@ -81,9 +72,6 @@ pub struct IntervalConfig {
     pub json: bool,
 }
 
-/// Template Values:
-///   - file
-///   - contents
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct InotifyConfig {
@@ -93,18 +81,6 @@ pub struct InotifyConfig {
     pub json: bool,
 }
 
-/// Template Values:
-///   - device
-///   - operstate
-///   - wireless
-///   - essid
-///   - quality
-///   - signal_dbm
-///   - frequency
-///   - ipv4_addresses
-///   - ipv6_addresses
-///   - ipv4_gateway
-///   - ipv6_gateway
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct NetworkConfig {
@@ -112,11 +88,6 @@ pub struct NetworkConfig {
     pub device: String,
 }
 
-/// Template Values:
-///   - rx_bytes_per_sec
-///   - tx_bytes_per_sec
-///   - rx_packets_per_sec
-///   - tx_packets_per_sec
 const fn default_interval() -> u64 {
     1
 }
@@ -130,10 +101,6 @@ pub struct NetworkStatsConfig {
     pub interval: u64,
 }
 
-/// Template Values:
-///   - sink_name
-///   - volume
-///   - muted
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct PulseVolumeConfig {
@@ -141,11 +108,6 @@ pub struct PulseVolumeConfig {
     pub sink_name: Option<String>,
 }
 
-/// Template Values:
-///   - command
-///   - args
-///   - signal
-///   - output
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct SignalConfig {
@@ -176,8 +138,6 @@ impl TryFrom<i32> for RTSigNum {
     }
 }
 
-/// Template Values:
-///   - output
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct StdinConfig {
@@ -193,9 +153,6 @@ pub struct NoopConfig {
     pub template: Option<String>,
 }
 
-/// Template Values:
-///   - interval
-///   - cpu_times
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CpuConfig {
@@ -212,21 +169,6 @@ pub enum Precision {
     Day,
 }
 
-/// Template Values:
-///   - timestamp
-///   - year
-///   - month
-///   - month_name
-///   - day
-///   - hour
-///   - hour_12
-///   - minute
-///   - second
-///   - am_pm
-///   - weekday
-///   - weekday_name
-///   - utc_offset
-///   - timezone_abbreviation
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct DateTimeConfig {
