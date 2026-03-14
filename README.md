@@ -45,6 +45,13 @@ binaries and `.deb` packages. If you have a working cargo/rust installation you
 should also be able to build from source using `cargo build --release`.
 yablocks works well as a standalone binary.
 
+### System Dependencies
+
+yablocks requires the following system libraries:
+
+- `libsensors` - for the temperature block
+- `libpulse` - for the pulse-volume block
+
 ## Usage
 
 yablocks waits for events and outputs text to `stdout`. For the most part,
