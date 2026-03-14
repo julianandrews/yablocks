@@ -213,6 +213,16 @@ fields will be accessible from the `output` value in the outputs.
 | args     | list(string)   | list of arguments provided  |
 | output   | string or json | last line of command output |
 
+#### Examples
+
+```toml
+[[blocks]]
+kind = "command"
+command = "echo"
+args = ["hello world"]
+template = "{{ output }}"
+```
+
 ### cpu
 
 Monitor CPU usage.
@@ -235,6 +245,15 @@ probably what you actually want.
 | --------- | ----------- | ------------------------------- |
 | interval  | number      | interval provided               |
 | cpu_times | map(number) | Map of CPU times as percentages |
+
+#### Examples
+
+```toml
+[[blocks]]
+kind = "cpu"
+interval = 5
+template = "CPU: {{ cpu_times.non_idle | round(precision=1) }}%"
+```
 
 ### date-time
 
@@ -271,6 +290,15 @@ specified precision to avoid drift.
 For a full list of valid IANA timezone codes, see the
 [IANA Time Zone Database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
 
+#### Examples
+
+```toml
+[[blocks]]
+kind = "date-time"
+precision = "minute"
+template = "{{ hour }}:{{ minute | round(format='02') }}"
+```
+
 ### interval
 
 Run a command periodically and show output.
@@ -296,6 +324,27 @@ all JSON fields will be accessible from the `output` value in the outputs.
 | args     | list(string)   | list of arguments provided            |
 | interval | number         | interval provided                     |
 | output   | string or json | output of the last command invocation |
+
+#### Examples
+
+```toml
+[[blocks]]
+kind = "interval"
+command = "uptime"
+interval = 60
+template = "up {{ output }}"
+```
+
+Monitor your public IP address (JSON):
+```toml
+[[blocks]]
+kind = "interval"
+command = "curl"
+args = ["-s", "ip-api.com/json"]
+interval = 300
+json = true
+template = "IP: {{ output.query }} ({{ output.city }}, {{ output.regionName }})"
+```
 
 ### inotify
 
@@ -325,6 +374,15 @@ directory is recreated and yablocks is restarted.
 | file     | string         | file to monitor      |
 | contents | string or json | contents of the file |
 
+#### Examples
+
+```toml
+[[blocks]]
+kind = "inotify"
+file = "/var/mail/julian"
+template = "mail: {{ contents | length }} bytes"
+```
+
 ### network
 
 Monitor status of a network device.
@@ -352,6 +410,15 @@ Monitor status of a network device.
 | ipv4_gateway        | string         | IPv4 default gateway (if any)                                     |
 | ipv6_gateway        | string         | IPv6 default gateway (if any)                                     |
 
+#### Examples
+
+```toml
+[[blocks]]
+kind = "network"
+device = "wlan0"
+template = "{% if operstate == \"up\" %}{{ essid }}: {{ signal_dbm }}dBm{% else %}down{% endif %}"
+```
+
 ### network-stats
 
 Monitor network traffic stats for a device.
@@ -372,6 +439,16 @@ Monitor network traffic stats for a device.
 | tx_bytes_per_sec   | number | transmitted bytes per second   |
 | rx_packets_per_sec | number | received packets per second    |
 | tx_packets_per_sec | number | transmitted packets per second |
+
+#### Examples
+
+```toml
+[[blocks]]
+kind = "network-stats"
+device = "wlan0"
+interval = 1
+template = "{{ rx_bytes_per_sec | round }} down / {{ tx_bytes_per_sec | round }} up"
+```
 
 ### pulse-volume
 
@@ -395,6 +472,14 @@ popular distros).
 | sink-name | string  | pulse audio sink name     |
 | volume    | number  | volume level              |
 | muted     | boolean | whether the sink is muted |
+
+#### Examples
+
+```toml
+[[blocks]]
+kind = "pulse-volume"
+template = "{% if muted %}🔇{% else %}🔊{{ volume }}%{% endif %}"
+```
 
 ### signal
 
