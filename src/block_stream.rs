@@ -9,6 +9,7 @@ mod noop;
 mod pulse_volume;
 mod signal;
 mod stdin;
+mod temperature;
 mod util;
 
 use anyhow::Result;
@@ -35,6 +36,7 @@ impl BlockStreamConfig for config::BlockConfig {
             config::BlockConfig::PulseVolume(config) => config.to_stream(name),
             config::BlockConfig::Signal(config) => config.to_stream(name),
             config::BlockConfig::Stdin(config) => config.to_stream(name),
+            config::BlockConfig::Temperature(config) => config.to_stream(name),
         }
     }
 }

@@ -445,6 +445,54 @@ all JSON fields will be accessible from the `output` value in the outputs.
 | -------- | -------------- | --------------------------- |
 | output   | string or json | last line of command output |
 
+### temperature
+
+Monitor system temperatures using `libsensors`.
+
+This block reads temperature data from Linux hwmon devices. The output is a map
+of chip names to arrays of sensor data.
+
+To find the chip and sensor names for your system, run the `sensors` command
+(from the `lm-sensors` package).
+
+#### Inputs
+
+| name     | type   | description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| template | string | template string (optional, default shows first sensor) |
+| interval | number | how often to poll for temperatures in seconds            |
+
+#### Outputs
+
+| name  | type                     | description                                   |
+| ----- | ------------------------ | --------------------------------------------- |
+| chips | map(array(sensor_data)) | map of chip name to array of sensor objects   |
+
+Each sensor object contains:
+
+| name   | type   | description                              |
+| ------ | ------ | ---------------------------------------- |
+| label  | string | sensor label (e.g. "Core 0", "Package") |
+| value  | number | temperature in Celsius                    |
+| chip   | string | chip prefix (e.g. "coretemp", "nvme")    |
+
+#### Examples
+
+Show all temperatures:
+```toml
+[[blocks]]
+kind = "temperature"
+interval = 10
+template = "{% for name, sensors in chips %}{{ name }}: {% for s in sensors %}{{ s.label }}={{ s.value }}°C{% if not loop.last %}, {% endif %}{% endfor %}{% if not loop.last %} | {% endif %}{% endfor %}"
+```
+
+Show just the CPU temperature:
+```toml
+[[blocks]]
+kind = "temperature"
+interval = 5
+template = "{{ chips['coretemp-isa-0000'][0].value }}°C"
+```
 
 ## Contributing
 

@@ -47,6 +47,7 @@ pub enum BlockConfig {
     PulseVolume(PulseVolumeConfig),
     Signal(SignalConfig),
     Stdin(StdinConfig),
+    Temperature(TemperatureConfig),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -176,4 +177,11 @@ pub struct DateTimeConfig {
     pub precision: Precision,
     #[serde(default)]
     pub timezone: Option<chrono_tz::Tz>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct TemperatureConfig {
+    pub template: Option<String>,
+    pub interval: u64,
 }
